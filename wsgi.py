@@ -27,7 +27,7 @@ def application(environ, start_response):
 	elif full_uri == "http://localhost/contacts/$" or full_uri == "http://127.0.0.1/contacts/$":
 		output = "Contacts page"
 	else:
-		output = "404 page.html page"
+		output = "404 page.html page TEST"
 
 	start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
 	return [ output.encode("utf-8") ]
