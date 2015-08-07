@@ -9,3 +9,9 @@ chmod-socket = 664
 vacuum = true
 
 die-on-term = true
+<<<<<<< HEAD
+=======
+
+touch-reload = /home/user/myapp/wsgi
+logger = file:/tmp/foobar
+>>>>>>> upstream/master

@@ -7,10 +7,10 @@
     <title>TITLE</title>
 
     <!-- Bootstrap core CSS -->
-    <link href="css/bootstrap.min.css" rel="stylesheet"/>
+    <link href="/css/bootstrap.min.css" rel="stylesheet"/>
 	<!--for test:<link href="http://getbootstrap.com/dist/css/bootstrap.min.css" rel="stylesheet">-->
     <!-- Custom styles for this template -->
-    <link href="css/styles.css" rel="stylesheet">
+    <link href="/css/styles.css" rel="stylesheet">
   </head>
 
   <body>
@@ -42,9 +42,7 @@
    
     <div class="container">
       <div class="myblock">
-		<!--{{ block1 }}-->
-		{% block myblock %}
-		{% endblock %}
+		{{ myblock }}
 	  </div>    
 
       <hr>
@@ -54,8 +52,8 @@
     </div> <!-- /container -->
 
 
-    <script src="js/jquery.min.js"></script>
-    <script src="js/bootstrap.min.js"></script>
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
   </body>
 </html>
 
