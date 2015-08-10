@@ -1,19 +1,22 @@
 from jinja2 import Template, Environment, FileSystemLoader
+from cgi import parse_qs, escape
 import cgi
 import re
 import random
 import string
 import md5
+import psycopg2
 
 def application(environ, start_response):
 	#env = Environment(loader=FileSystemLoader('/home/user/myapp/templates/'))
 	#template = env.get_template('index.html')
-	#TEMPLATES BLOCK
+	#TEMPLATES LOAD BLOCK
 	main_page = Template(open('/home/user/myapp/templates/base.html').read())
 	p1 = open('/home/user/myapp/templates/test/p1.html').read()
 	article_id = int(open('/home/user/myapp/templates/test/test.html').read()) #temp for testing (id=2)
 	contacts_page = open('/home/user/myapp/templates/contacts.html').read()
 	page_404 = open('/home/user/myapp/templates/404.html').read()
+	reg_page = open('/home/user/myapp/templates/reg.html').read()
 	
 	#parsing uri like from http://127.0.0.1/?age=10&hobbies=software&hobbies=tunning
 	#d = parse_qs(environ['QUERY_STRING'])
@@ -27,7 +30,9 @@ def application(environ, start_response):
 	if re.match(r'/article/%s/.*'%article_id, uri):
 		output = "Article page (ID important)"
 	elif re.match(r'/reg/.*', uri):
-		output = "Registration page"
+		output = main_page.render(myblock=reg_page)
+	elif re.match(r'/success/.*', uri):
+		output = reg(environ, start_response)
 	elif re.match(r'/auth/.*', uri):
 		output = auth(environ, start_response)
 	elif re.match(r'/partner/.*', uri):
@@ -40,11 +45,59 @@ def application(environ, start_response):
 		output = main_page.render(myblock=page_404)
 
 	start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
+	print(environ)
 	return [ output.encode("utf-8") ]
 
 def auth(environ, start_response):
+	#DEF Block
 	key = "Blast"
 	session_id = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for x in range(32))
 	client_agent = environ['HTTP_USER_AGENT'] + key
 	ident_id = md5.new(client_agent).digest()
-	return ident_id
+	#Parsing Block
+	try:
+		request_body_size = int(environ.get('CONTENT_LENGTH', 0))
+	except (ValueError):
+		request_body_size = 0
+	request_body = environ['wsgi.input'].read(request_body_size)
+	d = parse_qs(request_body)
+
+	email = d.get('email', [''])[0]
+	password = d.get('password', [''])[0]
+	email = escape(email)
+	password = escape(password)
+	
+	return "The input is: email:%s password:%s "%(email, password)
+
+
+def reg(environ, start_response):
+	#Parsing Block
+	try:
+		request_body_size = int(environ.get('CONTENT_LENGTH', 0))
+	except (ValueError):
+		request_body_size = 0
+	request_body = environ['wsgi.input'].read(request_body_size)
+	d = parse_qs(request_body)
+
+	email = d.get('email', [''])[0]
+	password = d.get('password', [''])[0]
+	email = escape(email)
+	password = escape(password)
+	
+	#Psycopg block (PostgreSQL)
+	try:
+		conn = psycopg2.connect("dbname=mydb user=postgres password=G898Q8QArma")
+		cur = conn.cursor()
+		cur.execute('SELECT version()')
+		ver = cur.fetchone()
+		print(ver)
+	except:
+		print 'Error'
+
+	
+	if conn:
+		conn.close()
+	return "OK"
+	#return "The input is: email:%s password:%s "%(email, password)
+	
+	
