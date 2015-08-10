@@ -1,4 +1,4 @@
-
-<p>Name: Vitaliy Volkov</p>
-<p>Address: Kiev, Ukraine</p>
-<p>Email: vitalyvolkov@inbox.ru</p>
+{% extends "base.html" %}
+{% block myblock %}
+HELLO
+{% endblock %}

@@ -1,22 +1,5 @@
+/* Move down content because we have a fixed navbar that is 50px tall */
 body {
   padding-top: 50px;
   padding-bottom: 20px;
-  background-color: #f7f7f7;
-	-webkit-background-size: cover;
-	-moz-background-size: cover;
-	-o--background-size: cover;
-  background-size: cover;
 }
-
-.cover-404 {
-	padding-top:300px;
-	padding-bottom:300px;
-	background-color:#f7f7f7;
-	text-align:center;
-}
-
-.contacts {
-	padding-top:50px;
-	font-size:26px;
-}
-
