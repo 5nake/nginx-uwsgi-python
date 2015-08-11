@@ -33,7 +33,7 @@
               <input type="password" placeholder="Password" class="form-control" name="password"> 
             </div>
             <button type="submit" formaction="/auth/" class="btn btn-success">Authorization</button>
-			<button type="submit" formaction="/reg/" formmethod="GET" class="btn btn-success">Registration</button>
+			<button type="submit" formaction="/reg/" class="btn btn-success">Registration</button>
 		  </form>
         </div><!--/.navbar-collapse -->
       </div>
@@ -44,7 +44,40 @@
       <div class="myblock">
 		{{ myblock }}
 	  </div>    
+	<script>
+$(document).ready (function()
+{
+    $('.submit').prop('disabled', true);
+    var elements = $('.validation').length;
+    var has;
+    $('.validation').change(function() {
+        var name = $(this).attr('name');
+        var data = {};
+        data['validation[' + name + '][value]'] = $(this).val();
+        data['validation[' + name + '][class]'] = $(this).attr('class');
 
+        $.ajax({
+            type: 'POST',
+            url: '',
+            dataType: 'html',
+            data: data,
+            beforeSend: function()
+            {
+                $('#row-' + name + ' div.msg').remove();
+            },
+            success: function(msg)
+            {
+                $('#row-' + name).append(msg);
+            }
+        });
+        has = $('.row:has(div.ok)').length + 1;
+        if (has == elements)
+        {
+            $('.submit').prop('disabled', false);
+        }
+    });
+});
+</script>
       <hr>
       <footer>
         <p>&copy; Vitaliy Volkov 2015</p>

@@ -1,11 +1,43 @@
 <div>
-<form method="POST">
-   <div class="form-group">
-       <p>Please, input your email</p><input type="text" placeholder="Email" class="form-control" name="email">
+<script src="/js/jquery.min.js"></script>
+</div>
+
+<div>
+<form id="myform" method="POST">
+   <div id="row-name" class="form-group">
+       <p>Please, input your Nickname</p><input type="text" placeholder="Name" class="name validation noempty" name="name">
+   </div>
+   <div id="row-email" class="form-group">
+       <p>Then input your email</p><input type="email" placeholder="Email" class="email validation noempty email" name="email">
     </div>
-    <div class="form-group">
-        <p>Please, input your password</p><input type="password" placeholder="Password" class="form-control" name="password"> 
+    <div id="row-password" class="form-group">
+        <p>At least, input your password</p><input type="password" placeholder="Password" class="validation noempty password" name="password"> 
      </div>
-		<button type="submit" formaction="/success/" class="btn btn-success">OK</button>
+		<button id ="submit" type="submit" class="submit">OK</button>
 </form>
+</div>
+
+<div>
+<script>
+$(document).ready (function(){
+    $('#submit').click(function() {
+		var formvars = $("#myform").serialize();
+		var url = "http://www.example.com/your_page.php?" + formvars;
+    		$.ajax({
+        		url: '',
+        		type:"POST",
+				data: formvars,
+        		success: function(data){
+           			if(data =="1")
+               			alert("VALID");
+           			else
+               			alert("IN VALID");
+        		},
+        		error: function(data){
+          			alert('error; '+ eval(error));
+        		}
+       		});
+		});
+});
+</script>
 </div>
