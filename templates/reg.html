@@ -1,3 +1,4 @@
+<form>
 <div class="container">
 	
 	<p style="padding-top:30px;">Hello there!<br/><br/>Please, input your Nickname</p>
@@ -10,21 +11,26 @@
 	<input type="password" placeholder="Password" name="password" id="password"> 
 </div>
 <div class="container" style="padding-top:15px;">
-	<button id="submit" class="btn btn-success">OK</button>
+	<button id="button_reg" class="btn btn-success">OK</button>
 </div>
+</form>
 
 <script>
 $(document).ready (function(){
-	$('#submit').click(function() {
-    	alert("TEST OK")
+	$('#button_reg').click(function() {
 		var name = $("#name").val();
 		var email = $("#email").val();
 		var password = $("#password").val();
-		var formvars = $("#myform").serialize();
 		$.post("/reg/reg/", { name: name, email: email, password: password },
 				function(data){
-    			alert(data);
+    			if (data === "Registration successfull!") {
+					alert("Registration successfull!")
+					window.location.href = ("/")
+				} else {
+					alert(data)
+				};
 		});
+	return false;
 	});
 });
 </script>

@@ -26,7 +26,9 @@
 		  <a class="navbar-brand" href="/care/">Care</a>
 		  <a class="navbar-brand" href="/contacts/">Contacts</a>
         </div>
-        <div id="navbar" class="navbar-collapse collapse">
+        
+		
+		<div id="navbar" class="navbar-collapse collapse">
           <form class="navbar-form navbar-right" method="POST">
             <div class="form-group">
               <input type="text" placeholder="Email" class="form-control" name="email">
@@ -34,10 +36,13 @@
             <div class="form-group">
               <input type="password" placeholder="Password" class="form-control" name="password"> 
             </div>
-            <button type="submit" formaction="/auth/" class="btn btn-success">Authorization</button>
-			<button type="submit" formaction="/reg/" class="btn btn-success">Registration</button>
+            <button type="submit" formaction="/auth/" class="btn btn-success">Log in</button>
+			<button type="submit" formaction="/reg/" class="btn btn-success">Sign In</button>
+			<button type="button" class="btn btn-success">Logout</button>
 		  </form>
         </div>
+
+
       </div>
     </nav>
 
@@ -52,6 +57,7 @@
         <p>&copy; Vitaliy Volkov 2015</p>
       </footer>
     </div> <!-- /container -->
+
 
   </body>
 </html>

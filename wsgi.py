@@ -1,12 +1,13 @@
 from jinja2 import Template, Environment, FileSystemLoader
 from cgi import parse_qs, escape
+from Cookie import SimpleCookie
+import Cookie
 import cgi
 import re
 import random
 import string
 import md5
 import psycopg2
-import json
 
 def application(environ, start_response):
 	#env = Environment(loader=FileSystemLoader('/home/user/myapp/templates/'))
@@ -18,10 +19,6 @@ def application(environ, start_response):
 	contacts_page = open('/home/user/myapp/templates/contacts.html').read()
 	page_404 = open('/home/user/myapp/templates/404.html').read()
 	reg_page = open('/home/user/myapp/templates/reg.html').read()
-	
-	#parsing uri like from http://127.0.0.1/?age=10&hobbies=software&hobbies=tunning
-	#d = parse_qs(environ['QUERY_STRING'])
-	#print (d)
 	
 	uri = environ['REQUEST_URI']
 	print(uri)
@@ -45,8 +42,11 @@ def application(environ, start_response):
 			print(environ)
 			return [ output.encode("utf-8") ]
 	elif re.match(r'/auth/.*', uri):
-		output = auth(environ, start_response)
-		start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
+		out = auth(environ, start_response) #output + cookies in tuple!
+		output = out[0]
+		session_cookie = out[1]
+		set_cookies = ('Set-Cookie', session_cookie)
+		start_response('200 OK', [set_cookies, ('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
 		print(environ)
 		return [ output.encode("utf-8") ]
 	elif re.match(r'/partner/.*', uri):
@@ -56,7 +56,9 @@ def application(environ, start_response):
 		return [ output.encode("utf-8") ]
 	elif re.match(r'/test/', uri):
 		output = "TEST PAGE"
-		start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
+		set_cookies = ('Set-Cookie', "Cookieees")
+		start_response('200 OK', [set_cookies, ('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
+		test(environ, start_response)
 		print(environ)
 		return [ output.encode("utf-8") ]
 	elif re.match(r'/contacts/.*', uri):
@@ -76,6 +78,12 @@ def application(environ, start_response):
 		return [ output.encode("utf-8") ]
 
 def auth(environ, start_response):
+	#Psycopg open connect (PostgreSQL)	
+	try:
+		conn = psycopg2.connect("dbname=mydb user=postgres password=G898Q8QArma")
+		conn.autocommit = True
+	except:
+		print "Cannot connect to db"
 	#DEF Block
 	key = "Blast"
 	session_id = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for x in range(32))
@@ -93,8 +101,40 @@ def auth(environ, start_response):
 	password = d.get('password', [''])[0]
 	email = escape(email)
 	password = escape(password)
-	
-	return "The input is: email:%s password:%s "%(email, password)
+
+	#Psycopg block2 (PostgreSQL)
+	cur = conn.cursor()
+	cur.execute("SELECT login from users")#emails
+	users_emails = cur.fetchall()
+	cur.execute("SELECT password from users")#emails
+	users_passwords = cur.fetchall()
+	for elem1 in users_emails:
+		if elem1[0] == email:
+			SQL_pass = "SELECT password from users WHERE login = %s;"
+			data_pass = (str(email), )
+			cur.execute(SQL_pass, data_pass)
+			user_password = cur.fetchall() #Getting password which email input
+			user_password = str(user_password[0][0])
+			if user_password == password: #Checking right password
+				SQL_email = "SELECT id from users WHERE login = %s;"
+				data_email = (str(email), )
+				cur.execute(SQL_email, data_email)
+				user_id = cur.fetchall() #Getting user_id which email input. For string format use str(user_id[0][0])
+				#INSERT SESSION DATA
+				SQL_insert = "INSERT INTO sessions (user_id, session_id, ident_id) VALUES (%s, %s, %s);"
+				ident = psycopg2.Binary(ident_id)
+				data_insert = (str(user_id[0][0]), str(session_id), ident)
+				cur.execute(SQL_insert, data_insert)
+
+				session_cookie = "session_id=%s"%session_id
+				return ("INSERT SESSION DATA", session_cookie)
+			else:
+				return "Wrong password!"
+		else:
+			return "Email doesn't exists!"
+	conn.close() #Close Postgre Connection
+
+
 
 def reg(environ, start_response):
 	#Psycopg open connect (PostgreSQL)	
@@ -118,27 +158,37 @@ def reg(environ, start_response):
 	email = escape(email)
 	password = escape(password)
 	
-	#Psycopg block2 (PostgreSQL)
-	cur = conn.cursor()
-	cur.execute("SELECT name from users")
-	users_db = cur.fetchall()
-	for elem in users_db:
-		if elem[0] == name:
-			if conn:
-				conn.close()
-			return "name already exists"
+	if name == "" or email == "" or password == "":
+		return "Please fill all fields!"
 	else:
-		cur.execute("SELECT login from users")
-		logins_db = cur.fetchall()
-		for elem2 in logins_db:
-			if elem2[0] == email:
+		#Psycopg block2 (PostgreSQL)
+		cur = conn.cursor()
+		cur.execute("SELECT name from users")
+		users_db = cur.fetchall()
+		for elem in users_db:
+			if elem[0] == name:
 				if conn:
 					conn.close()
-				return "email already exists"
+				return "Name already exists!"
 		else:
-			SQL = "INSERT INTO users (name, login, password) VALUES (%s, %s, %s);"
-			data = (str(name), str(email), str(password), )
-			cur.execute(SQL, data)
-			if conn:
-				conn.close()
-				return "Registration successfull!"
+			cur.execute("SELECT login from users")
+			logins_db = cur.fetchall()
+			for elem2 in logins_db:
+				if elem2[0] == email:
+					if conn:
+						conn.close()
+					return "Email already exists!"
+			else:
+				SQL = "INSERT INTO users (name, login, password) VALUES (%s, %s, %s);"
+				data = (str(name), str(email), str(password))
+				cur.execute(SQL, data)
+				if conn:
+					conn.close()
+					return "Registration successfull!"
+
+def test(environ, start_response):
+	cookie = SimpleCookie()
+	cookie['likes'] = "cheese"
+	# output the HTTP header
+	print(cookie.output())
+	
