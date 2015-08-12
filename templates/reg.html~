@@ -1,43 +1,38 @@
-<div>
-<script src="/js/jquery.min.js"></script>
+<form>
+<div class="container">
+	
+	<p style="padding-top:30px;">Hello there!<br/><br/>Please, input your Nickname</p>
+	<input type="text" placeholder="Name" name="name" id="name">
+    
+	<p style="padding-top:15px;">Then input your email</p>
+	<input type="email" placeholder="Email" name="email" id="email">
+    
+	<p style="padding-top:15px;">At least, input your password</p>
+	<input type="password" placeholder="Password" name="password" id="password"> 
 </div>
-
-<div>
-<form id="myform" method="POST">
-   <div id="row-name" class="form-group">
-       <p>Please, input your Nickname</p><input type="text" placeholder="Name" class="name validation noempty" name="name">
-   </div>
-   <div id="row-email" class="form-group">
-       <p>Then input your email</p><input type="email" placeholder="Email" class="email validation noempty email" name="email">
-    </div>
-    <div id="row-password" class="form-group">
-        <p>At least, input your password</p><input type="password" placeholder="Password" class="validation noempty password" name="password"> 
-     </div>
-		<button id ="submit" type="submit" class="submit">OK</button>
+<div class="container" style="padding-top:15px;">
+	<button id="button" class="btn btn-success">OK</button>
+</div>
 </form>
-</div>
 
-<div>
 <script>
 $(document).ready (function(){
-    $('#submit').click(function() {
-		var formvars = $("#myform").serialize();
-		var url = "http://www.example.com/your_page.php?" + formvars;
-    		$.ajax({
-        		url: '',
-        		type:"POST",
-				data: formvars,
-        		success: function(data){
-           			if(data =="1")
-               			alert("VALID");
-           			else
-               			alert("IN VALID");
-        		},
-        		error: function(data){
-          			alert('error; '+ eval(error));
-        		}
-       		});
+	$('#button').click(function() {
+		var name = $("#name").val();
+		var email = $("#email").val();
+		var password = $("#password").val();
+		$.post("/reg/reg/", { name: name, email: email, password: password },
+				function(data){
+    			if (data === "Registration successfull!") {
+					alert("Registration successfull!")
+					window.location.href = ("/")
+				} else {
+					alert(data)
+				};
 		});
+	return false;
+	});
 });
 </script>
-</div>
+
+<!--DO: if data == name already exists | email already exists ==> ALERT else ==> redirect to SUCCESFULL PAGE -->

@@ -6,7 +6,6 @@ import random
 import string
 import md5
 import psycopg2
-import json
 
 def application(environ, start_response):
 	#env = Environment(loader=FileSystemLoader('/home/user/myapp/templates/'))
@@ -19,10 +18,6 @@ def application(environ, start_response):
 	page_404 = open('/home/user/myapp/templates/404.html').read()
 	reg_page = open('/home/user/myapp/templates/reg.html').read()
 	
-	#parsing uri like from http://127.0.0.1/?age=10&hobbies=software&hobbies=tunning
-	#d = parse_qs(environ['QUERY_STRING'])
-	#print (d)
-	
 	uri = environ['REQUEST_URI']
 	print(uri)
 
@@ -30,29 +25,59 @@ def application(environ, start_response):
 	#URI BLOCK
 	if re.match(r'/article/%s/.*'%article_id, uri):
 		output = "Article page (ID important)"
-	elif re.match(r'/reg/.*', uri):
-		reg(environ, start_response)
-		output = main_page.render(myblock=reg_page)
-	#elif re.match(r'/success/.*', uri):
-		#output = reg(environ, start_response)
+		start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
+		print(environ)
+		return [ output.encode("utf-8") ]
+	elif re.match(r'/reg/', uri):
+		if environ['REQUEST_URI'] == "/reg/reg/":
+			output = reg(environ, start_response)
+			start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
+			print(environ)			
+			return [ output.encode("utf-8") ]
+		else:
+			output = main_page.render(myblock=reg_page)
+			start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
+			print(environ)
+			return [ output.encode("utf-8") ]
 	elif re.match(r'/auth/.*', uri):
 		output = auth(environ, start_response)
+		start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
+		print(environ)
+		print(output)
+		return [ output.encode("utf-8") ]
 	elif re.match(r'/partner/.*', uri):
 		output = "Became a partner page"
-	elif re.match(r'/test/.*', uri):
-		output = test(environ, start_response)
+		start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
+		print(environ)
+		return [ output.encode("utf-8") ]
+	elif re.match(r'/test/', uri):
+		output = "TEST PAGE"
+		start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
+		print(environ)
+		return [ output.encode("utf-8") ]
 	elif re.match(r'/contacts/.*', uri):
 		output = main_page.render(myblock=contacts_page)
+		start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
+		print(environ)
+		return [ output.encode("utf-8") ]
 	elif uri == "/":
 		output = main_page.render(myblock=p1)
+		start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
+		print(environ)
+		return [ output.encode("utf-8") ]
 	else:
 		output = main_page.render(myblock=page_404)
-
-	start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
-	print(environ)
-	return [ output.encode("utf-8") ]
+		start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
+		print(environ)
+		return [ output.encode("utf-8") ]
 
 def auth(environ, start_response):
+	#Psycopg open connect (PostgreSQL)	
+	try:
+		conn = psycopg2.connect("dbname=mydb user=postgres password=G898Q8QArma")
+		conn.autocommit = True
+	except:
+		print "Cannot connect to db"
 	#DEF Block
 	key = "Blast"
 	session_id = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for x in range(32))
@@ -70,8 +95,37 @@ def auth(environ, start_response):
 	password = d.get('password', [''])[0]
 	email = escape(email)
 	password = escape(password)
-	
-	return "The input is: email:%s password:%s "%(email, password)
+
+	#Psycopg block2 (PostgreSQL)
+	cur = conn.cursor()
+	cur.execute("SELECT login from users")#emails
+	users_emails = cur.fetchall()
+	cur.execute("SELECT password from users")#emails
+	users_passwords = cur.fetchall()
+	for elem1 in users_emails:
+		if elem1[0] == email:
+			SQL_pass = "SELECT password from users WHERE login = %s;"
+			data_pass = (str(email), )
+			cur.execute(SQL_pass, data_pass)
+			user_password = cur.fetchall() #Getting password which email input
+			user_password = str(user_password[0][0])
+			if user_password == password: #Checking right password
+				SQL_email = "SELECT id from users WHERE login = %s;"
+				data_email = (str(email), )
+				cur.execute(SQL_email, data_email)
+				user_id = cur.fetchall() #Getting user_id which email input. For string format use str(user_id[0][0])
+				#INSERT SESSION DATA
+				SQL_insert = "INSERT INTO sessions (user_id, session_id, ident_id) VALUES (%s, %s, %s);"
+				ident = psycopg2.Binary(ident_id)
+				data_insert = (str(user_id[0][0]), str(session_id), ident)
+				cur.execute(SQL_insert, data_insert)
+				return "INSERT SESSION DATA"
+			else:
+				return "Wrong password!"
+		else:
+			return "Email doesn't exists!"
+	conn.close() #Close Postgre Connection
+
 
 
 def reg(environ, start_response):
@@ -80,8 +134,7 @@ def reg(environ, start_response):
 		conn = psycopg2.connect("dbname=mydb user=postgres password=G898Q8QArma")
 		conn.autocommit = True
 	except:
-		print "Cannot connect to db" 
-	
+		print "Cannot connect to db"
 	#Parsing Block
 	try:
 		request_body_size = int(environ.get('CONTENT_LENGTH', 0))
@@ -97,41 +150,30 @@ def reg(environ, start_response):
 	email = escape(email)
 	password = escape(password)
 	
-	#Psycopg block2 (PostgreSQL)
-	cur = conn.cursor()
-	cur.execute("SELECT name from users")
-	users_db = cur.fetchall()
-	for elem in users_db:
-		if elem[0] == name:
-			if conn:
-				conn.close()
-			return 0
+	if name == "" or email == "" or password == "":
+		return "Please fill all fields!"
 	else:
-		cur.execute("SELECT login from users")
-		logins_db = cur.fetchall()
-		for elem2 in logins_db:
-			if elem2[0] == email:
+		#Psycopg block2 (PostgreSQL)
+		cur = conn.cursor()
+		cur.execute("SELECT name from users")
+		users_db = cur.fetchall()
+		for elem in users_db:
+			if elem[0] == name:
 				if conn:
 					conn.close()
-				return "email already exist"
+				return "Name already exists!"
 		else:
-			SQL = "INSERT INTO users (name, login, password) VALUES (%s, %s, %s);"
-			data = (str(name), str(email), str(password), )
-			cur.execute(SQL, data)
-			if conn:
-				conn.close()
-				return "The input is: name:%s email:%s password:%s "%(name, email, password)
-	
-def test(environ, start_response):
-	try:
-		conn = psycopg2.connect("dbname=mydb user=postgres password=G898Q8QArma")
-		conn.autocommit = True
-	except:
-		print "Cannot connect to db"
-	cur = conn.cursor()
-	cur.execute("SELECT name from users")
-	a = cur.fetchall()
-	for elem in a:
-		print(elem[0])
-	return "Hello"
-	
+			cur.execute("SELECT login from users")
+			logins_db = cur.fetchall()
+			for elem2 in logins_db:
+				if elem2[0] == email:
+					if conn:
+						conn.close()
+					return "Email already exists!"
+			else:
+				SQL = "INSERT INTO users (name, login, password) VALUES (%s, %s, %s);"
+				data = (str(name), str(email), str(password))
+				cur.execute(SQL, data)
+				if conn:
+					conn.close()
+					return "Registration successfull!"
