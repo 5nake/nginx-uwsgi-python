@@ -38,7 +38,7 @@
             </div>
             <button type="submit" formaction="/auth/" class="btn btn-success">Log in</button>
 			<button type="submit" formaction="/reg/" class="btn btn-success">Sign In</button>
-			<button type="button" class="btn btn-success">Logout</button>
+			<button type="submit" formaction="/logout/" class="btn btn-success">Logout</button>
 		  </form>
         </div>
 
@@ -50,6 +50,11 @@
     <div class="container">
       <div class="myblock">
 		{{ myblock }}
+
+		{% if name %}
+			name
+		{% endif % }
+		
 	  </div>    
 	
       <hr>

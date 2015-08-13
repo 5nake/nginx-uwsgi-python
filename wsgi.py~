@@ -1,6 +1,6 @@
 from jinja2 import Template, Environment, FileSystemLoader
 from cgi import parse_qs, escape
-from Cookie import SimpleCookie
+import time
 import Cookie
 import cgi
 import re
@@ -9,11 +9,12 @@ import string
 import md5
 import psycopg2
 
+name = "Blast"
+
 def application(environ, start_response):
-	#env = Environment(loader=FileSystemLoader('/home/user/myapp/templates/'))
-	#template = env.get_template('index.html')
 	#TEMPLATES LOAD BLOCK
 	main_page = Template(open('/home/user/myapp/templates/base.html').read())
+	#main_page = Template(main_page.render(name=name))
 	p1 = open('/home/user/myapp/templates/test/p1.html').read()
 	article_id = int(open('/home/user/myapp/templates/test/test.html').read()) #temp for testing (id=2)
 	contacts_page = open('/home/user/myapp/templates/contacts.html').read()
@@ -41,12 +42,26 @@ def application(environ, start_response):
 			start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
 			print(environ)
 			return [ output.encode("utf-8") ]
-	elif re.match(r'/auth/.*', uri):
+	elif re.match(r'/auth/', uri):
+		print(environ)
 		out = auth(environ, start_response) #output + cookies in tuple!
 		output = out[0]
 		session_cookie = out[1]
-		set_cookies = ('Set-Cookie', session_cookie)
-		start_response('200 OK', [set_cookies, ('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
+		if session_cookie == False:
+			start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
+			return [ output.encode("utf-8") ]
+		else:
+			set_cookies = ('Set-Cookie', session_cookie)
+			start_response('200 OK', [set_cookies, ('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
+			return [ output.encode("utf-8") ]
+	elif re.match(r'/check/auth/', uri):
+		output = check_auth(environ, start_response)	
+		print(environ)
+		start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
+		return [ output.encode("utf-8") ]
+	elif re.match(r'/logout/', uri):
+		output = logout(environ, start_response)
+		start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
 		print(environ)
 		return [ output.encode("utf-8") ]
 	elif re.match(r'/partner/.*', uri):
@@ -54,13 +69,10 @@ def application(environ, start_response):
 		start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
 		print(environ)
 		return [ output.encode("utf-8") ]
-	elif re.match(r'/test/', uri):
-		output = "TEST PAGE"
-		set_cookies = ('Set-Cookie', "Cookieees")
-		start_response('200 OK', [set_cookies, ('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
-		test(environ, start_response)
-		print(environ)
-		return [ output.encode("utf-8") ]
+	#elif re.match(r'/test/', uri):
+		#output = "TEST PAGE"
+		#print(environ)
+		#return [ output.encode("utf-8") ]
 	elif re.match(r'/contacts/.*', uri):
 		output = main_page.render(myblock=contacts_page)
 		start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
@@ -88,7 +100,7 @@ def auth(environ, start_response):
 	key = "Blast"
 	session_id = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for x in range(32))
 	client_agent = environ['HTTP_USER_AGENT'] + key
-	ident_id = md5.new(client_agent).digest()
+	ident_id = md5.new(client_agent).hexdigest()
 	#Parsing Block
 	try:
 		request_body_size = int(environ.get('CONTENT_LENGTH', 0))
@@ -109,7 +121,7 @@ def auth(environ, start_response):
 	cur.execute("SELECT password from users")#emails
 	users_passwords = cur.fetchall()
 	for elem1 in users_emails:
-		if elem1[0] == email:
+		if email == elem1[0]:
 			SQL_pass = "SELECT password from users WHERE login = %s;"
 			data_pass = (str(email), )
 			cur.execute(SQL_pass, data_pass)
@@ -125,13 +137,15 @@ def auth(environ, start_response):
 				ident = psycopg2.Binary(ident_id)
 				data_insert = (str(user_id[0][0]), str(session_id), ident)
 				cur.execute(SQL_insert, data_insert)
-
-				session_cookie = "session_id=%s"%session_id
+				#INSERT COOKIES
+				expires = time.time() + 30 * 24 * 3600
+				session_expires = time.strftime("%a, %d-%b-%Y, %T GMT", time.gmtime(expires))
+				session_cookie = "sessions=%s,%s; PATH=/; EXPIRES=%s"%(session_id, ident_id, session_expires)
 				return ("INSERT SESSION DATA", session_cookie)
 			else:
-				return "Wrong password!"
-		else:
-			return "Email doesn't exists!"
+				return ("Wrong password!", False)
+	else:
+		return ("Email doesn't exists!", False)
 	conn.close() #Close Postgre Connection
 
 
@@ -186,9 +200,68 @@ def reg(environ, start_response):
 					conn.close()
 					return "Registration successfull!"
 
-def test(environ, start_response):
-	cookie = SimpleCookie()
-	cookie['likes'] = "cheese"
-	# output the HTTP header
-	print(cookie.output())
+def check_auth(environ, start_response):
+	#Psycopg open connect (PostgreSQL)	
+	try:
+		conn = psycopg2.connect("dbname=mydb user=postgres password=G898Q8QArma")
+		conn.autocommit = True
+		cur = conn.cursor()
+	except:
+		print "Cannot connect to db"
+	
+	try:
+		#Parsing cookie
+		cookies = environ['HTTP_COOKIE']
+		cookies_session = parse_qs(cookies)["sessions"]
+		session_list = cookies_session[0].split(',')
+		session_id_cookie = session_list[0] #Cookie session_id
+		ident_id_cookie = session_list[1] #Cookie ident_id
+		#Getting current Client Agent (MD5)
+		key = "Blast"
+		session_id_cur = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for x in range(32))
+		client_agent_cur = environ['HTTP_USER_AGENT'] + key
+		ident_id_cur = md5.new(client_agent_cur).hexdigest()
+		#Check equals
+		print (ident_id_cookie, ident_id_cur)
+		if ident_id_cookie == ident_id_cur:
+			SQL = "SELECT user_id from sessions WHERE session_id = %s AND ident_id = %s;"
+			data = (session_id_cookie, ident_id_cookie)
+			cur.execute(SQL, data)
+			current_user_id = cur.fetchall()
+			if current_user_id != 0 and current_user_id != None:
+				return str(current_user_id[0][0]) #Original current_user_id is smth loke [(1, )] (int)
+			else:
+				return "DATABASE ERROR"
+		else:
+			return "False"
+
+	except:
+		return "No Coookie!"
+
+
+def logout(environ, start_response):
+	#Psycopg open connect (PostgreSQL)	
+	try:
+		conn = psycopg2.connect("dbname=mydb user=postgres password=G898Q8QArma")
+		conn.autocommit = True
+		cur = conn.cursor()
+	except:
+		print "Cannot connect to db"
+	
+	#Parsing cookie (shall remove this block soon)
+	try:
+		cookies = environ['HTTP_COOKIE']
+		cookies_session = parse_qs(cookies)["sessions"]
+		session_list = cookies_session[0].split(',')
+		session_id_cookie = session_list[0] #Cookie session_id
+		ident_id_cookie = session_list[1] #Cookie ident_id
+		SQL_SELEST = "SELECT user_id from sessions WHERE session_id = %s AND ident_id = %s;"
+		data_select = (session_id_cookie, ident_id_cookie)
+		cur.execute(SQL_SELEST, data_select)
+		user_id = cur.fetchall()
+		user_id = user_id[0][0]
+		cur.execute("DELETE FROM sessions WHERE user_id = %s;", (user_id, ))
+		return "LOGOUT USER_ID" + user_id
+	except:
+		return "ERROR! ALREADY LOGOUT"
 	
