@@ -10,8 +10,7 @@ import md5
 import psycopg2
 
 def application(environ, start_response):
-	#env = Environment(loader=FileSystemLoader('/home/user/myapp/templates/'))
-	#template = env.get_template('index.html')
+	name = check_auth(environ, start_response)
 	#TEMPLATES LOAD BLOCK
 	main_page = Template(open('/home/user/myapp/templates/base.html').read())
 	p1 = open('/home/user/myapp/templates/test/p1.html').read()
@@ -37,11 +36,11 @@ def application(environ, start_response):
 			print(environ)			
 			return [ output.encode("utf-8") ]
 		else:
-			output = main_page.render(myblock=reg_page)
+			output = main_page.render(myblock=reg_page, name=name)
 			start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
 			print(environ)
 			return [ output.encode("utf-8") ]
-	elif re.match(r'/auth/.*', uri):
+	elif re.match(r'/auth/', uri):
 		print(environ)
 		out = auth(environ, start_response) #output + cookies in tuple!
 		output = out[0]
@@ -73,17 +72,17 @@ def application(environ, start_response):
 		#print(environ)
 		#return [ output.encode("utf-8") ]
 	elif re.match(r'/contacts/.*', uri):
-		output = main_page.render(myblock=contacts_page)
+		output = main_page.render(myblock=contacts_page, name=name)
 		start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
 		print(environ)
 		return [ output.encode("utf-8") ]
 	elif uri == "/":
-		output = main_page.render(myblock=p1)
+		output = main_page.render(myblock=p1, name=name)
 		start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
 		print(environ)
 		return [ output.encode("utf-8") ]
 	else:
-		output = main_page.render(myblock=page_404)
+		output = main_page.render(myblock=page_404, name=name)
 		start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))])
 		print(environ)
 		return [ output.encode("utf-8") ]
@@ -99,7 +98,7 @@ def auth(environ, start_response):
 	key = "Blast"
 	session_id = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for x in range(32))
 	client_agent = environ['HTTP_USER_AGENT'] + key
-	ident_id = md5.new(client_agent).digest()
+	ident_id = md5.new(client_agent).hexdigest()
 	#Parsing Block
 	try:
 		request_body_size = int(environ.get('CONTENT_LENGTH', 0))
@@ -115,38 +114,25 @@ def auth(environ, start_response):
 
 	#Psycopg block2 (PostgreSQL)
 	cur = conn.cursor()
-	cur.execute("SELECT login from users")#emails
-	users_emails = cur.fetchall()
-	cur.execute("SELECT password from users")#emails
-	users_passwords = cur.fetchall()
-	for elem1 in users_emails:
-		if email == elem1[0]:
-			SQL_pass = "SELECT password from users WHERE login = %s;"
-			data_pass = (str(email), )
-			cur.execute(SQL_pass, data_pass)
-			user_password = cur.fetchall() #Getting password which email input
-			user_password = str(user_password[0][0])
-			if user_password == password: #Checking right password
-				SQL_email = "SELECT id from users WHERE login = %s;"
-				data_email = (str(email), )
-				cur.execute(SQL_email, data_email)
-				user_id = cur.fetchall() #Getting user_id which email input. For string format use str(user_id[0][0])
-				#INSERT SESSION DATA
-				SQL_insert = "INSERT INTO sessions (user_id, session_id, ident_id) VALUES (%s, %s, %s);"
-				ident = psycopg2.Binary(ident_id)
-				data_insert = (str(user_id[0][0]), str(session_id), ident)
-				cur.execute(SQL_insert, data_insert)
-				
-				expires = time.time() + 30 * 24 * 3600
-				session_expires = time.strftime("%a, %d-%b-%Y, %T GMT", time.gmtime(expires))
-				print(session_expires)
-				session_cookie = "sessions=%s,%s; PATH=/; EXPIRES=%s"%(session_id, ident_id, session_expires)
-				return ("INSERT SESSION DATA", session_cookie)
-			else:
-				return ("Wrong password!", False)
-	else:
-		return ("Email doesn't exists!", False)
-	conn.close() #Close Postgre Connection
+	try:
+		SQL_SELECT = "SELECT id FROM users WHERE login = %s AND password = %s;"
+		data_select = (str(email), str(password))
+		cur.execute(SQL_SELECT, data_select)
+		user_id = cur.fetchall()
+		#INSERT SESSION DATA
+		SQL_insert = "INSERT INTO sessions (user_id, session_id, ident_id) VALUES (%s, %s, %s);"
+		ident = psycopg2.Binary(ident_id)
+		data_insert = (str(user_id[0][0]), str(session_id), ident)
+		cur.execute(SQL_insert, data_insert)
+		cur.close()
+		conn.close() #Close Postgre Connection
+		#INSERT COOKIES
+		expires = time.time() + 30 * 24 * 3600
+		session_expires = time.strftime("%a, %d-%b-%Y, %T GMT", time.gmtime(expires))
+		session_cookie = "sessions=%s,%s; PATH=/; EXPIRES=%s"%(session_id, ident_id, session_expires)
+		return ("INSERT SESSION DATA", session_cookie)
+	except:
+		return ("WRONG USER DATA!!", False)
 
 
 
@@ -181,70 +167,93 @@ def reg(environ, start_response):
 		users_db = cur.fetchall()
 		for elem in users_db:
 			if elem[0] == name:
-				if conn:
-					conn.close()
+				cur.close()
+				conn.close()
 				return "Name already exists!"
 		else:
 			cur.execute("SELECT login from users")
 			logins_db = cur.fetchall()
 			for elem2 in logins_db:
 				if elem2[0] == email:
-					if conn:
-						conn.close()
+					cur.close()
+					conn.close()
 					return "Email already exists!"
 			else:
 				SQL = "INSERT INTO users (name, login, password) VALUES (%s, %s, %s);"
 				data = (str(name), str(email), str(password))
 				cur.execute(SQL, data)
-				if conn:
-					conn.close()
-					return "Registration successfull!"
+				cur.close()
+				conn.close()
+				return "Registration successfull!"
 
 def check_auth(environ, start_response):
 	#Psycopg open connect (PostgreSQL)	
 	try:
 		conn = psycopg2.connect("dbname=mydb user=postgres password=G898Q8QArma")
 		conn.autocommit = True
+		cur = conn.cursor()
 	except:
 		print "Cannot connect to db"
 	
-	#try:
-	#Parsing cookie
-	cookies = environ['HTTP_COOKIE']
-	cookies_session = parse_qs(cookies)["sessions"]
-	session_list = cookies_session[0].split(',')
-	session_id_cookie = session_list[0] #Cookie session_id
-	ident_id_cookie = session_list[1] #Cookie ident_id
-	#Check Postgre data exist
-	cur = conn.cursor()
-	cur.execute("SELECT session_id from sessions")
-	session_ids_db = cur.fetchall()
-	session_id_db = False
-	for elem in session_ids_db:
-		if elem[0] == session_id_cookie:
-			session_id_db = elem[0] # Session_id DATABASE = Session_id cookie
-	SQL_ident = "SELECT user_id from sessions WHERE session_id = %s AND ident_id = %s;"
-	data_ident = (session_id_db, psycopg2.Binary(ident_id_cookie))
-	cur.execute(SQL_ident, data_ident)
-	current_user_id = cur.fetchall()
-	print(data_ident)
-	return str(current_user_id)
+	try:
+		#Parsing cookie
+		cookies = environ['HTTP_COOKIE']
+		cookies_session = parse_qs(cookies)["sessions"]
+		session_list = cookies_session[0].split(',')
+		session_id_cookie = session_list[0] #Cookie session_id
+		ident_id_cookie = session_list[1] #Cookie ident_id
+		#Getting current Client Agent (MD5)
+		key = "Blast"
+		session_id_cur = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for x in range(32))
+		client_agent_cur = environ['HTTP_USER_AGENT'] + key
+		ident_id_cur = md5.new(client_agent_cur).hexdigest()
+		#Check equals
+		print (ident_id_cookie, ident_id_cur)
+		if ident_id_cookie == ident_id_cur:
+			SQL_id = "SELECT user_id from sessions WHERE session_id = %s AND ident_id = %s;"
+			data_id = (session_id_cookie, ident_id_cookie)
+			cur.execute(SQL_id, data_id)
+			current_user_id = cur.fetchall()
+			if current_user_id != 0 and current_user_id != None:
+				SQL_name = "SELECT name from users WHERE id = %s;"
+				data_name = (str(current_user_id[0][0]), )
+				print(data_id)
+				cur.execute(SQL_name, data_name)
+				user_name = cur.fetchall()
+				return str(user_name[0][0])
+			else:
+				print("DATABASE ERROR")
+				return False
+		else:
+			print("COOKIE ERROR")
+			return False
+	except:
+		return False #NO COOKIE
 
-	
-	#except:
-		#return "No Coookie!"
-
-
-	print environ
 
 def logout(environ, start_response):
 	#Psycopg open connect (PostgreSQL)	
 	try:
 		conn = psycopg2.connect("dbname=mydb user=postgres password=G898Q8QArma")
 		conn.autocommit = True
+		cur = conn.cursor()
 	except:
 		print "Cannot connect to db"
-
-	print (environ)
-	return "LOGOUT"
+	
+	#Parsing cookie (shall remove this block soon)
+	try:
+		cookies = environ['HTTP_COOKIE']
+		cookies_session = parse_qs(cookies)["sessions"]
+		session_list = cookies_session[0].split(',')
+		session_id_cookie = session_list[0] #Cookie session_id
+		ident_id_cookie = session_list[1] #Cookie ident_id
+		SQL_SELEST = "SELECT user_id from sessions WHERE session_id = %s AND ident_id = %s;"
+		data_select = (session_id_cookie, ident_id_cookie)
+		cur.execute(SQL_SELEST, data_select)
+		user_id = cur.fetchall()
+		user_id = user_id[0][0]
+		cur.execute("DELETE FROM sessions WHERE user_id = %s;", (user_id, ))
+		return "LOGOUT USER_ID" + user_id
+	except:
+		return "ERROR! ALREADY LOGOUT"
 	
