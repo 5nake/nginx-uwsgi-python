@@ -28,19 +28,57 @@
         </div>
         
 		
-		<div id="navbar" class="navbar-collapse collapse">
-          <form class="navbar-form navbar-right" method="POST">
-            <div class="form-group">
-              <input type="text" placeholder="Email" class="form-control" name="email">
-            </div>
-            <div class="form-group">
-              <input type="password" placeholder="Password" class="form-control" name="password"> 
-            </div>
-            <button type="submit" formaction="/auth/" class="btn btn-success">Log in</button>
-			<button type="submit" formaction="/reg/" class="btn btn-success">Sign In</button>
-			<button type="submit" formaction="/logout/" class="btn btn-success">Logout</button>
-		  </form>
-        </div>
+		{% if name %}
+			<div id="navbar" class="navbar-collapse collapse">
+				<form class="navbar-form navbar-right" method="POST">
+					<div class="form-group" style="color:red; font-size:16px;">
+            			{{ name }}
+					</div>
+						<button id = "button_logout" type="submit" formaction="/logout/" class="btn btn-success">Logout</button>
+				</form>
+			</div>
+			<script>
+			$(document).ready (function(){
+				$('#button_logout').click(function() {
+				$.get("/logout/",
+					function(data){
+						window.location.href = ("/")
+				});
+				return false;
+				});
+					});
+			</script>
+		{% else %}
+			<div id="navbar" class="navbar-collapse collapse">
+				<form class="navbar-form navbar-right" method="POST">
+				<div class="form-group">
+					<input type="text" placeholder="Email" class="form-control" name="email" id="email">
+        		</div>
+        		<div class="form-group">
+           			<input type="password" placeholder="Password" class="form-control" name="password" id="password"> 
+        		</div>
+            		<button id = "button_auth" type="submit" formaction="/auth/" class="btn btn-success">Log in</button>
+					<button type="submit" formaction="/reg/" class="btn btn-success">Sign In</button>
+				</form>
+			</div>
+			<script>
+			$(document).ready (function(){
+				$('#button_auth').click(function() {
+				var email = $("#email").val();
+				var password = $("#password").val();
+				$.post("/auth/", { email: email, password: password },
+					function(data){
+    				if (data === "INSERT SESSION DATA") {
+						window.location.href = ("/")
+					} else {
+						alert("WRONG USER DATA!")
+					};
+				});
+				return false;
+				});
+					});
+			</script>
+		{% endif %}		
 
 
       </div>
@@ -49,11 +87,7 @@
    
     <div class="container">
       <div class="myblock">
-		{{ myblock }}
-
-		{% if name %}
-			name
-		{% endif % }
+		{{ myblock }}	
 		
 	  </div>    
 	

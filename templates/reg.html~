@@ -11,13 +11,13 @@
 	<input type="password" placeholder="Password" name="password" id="password"> 
 </div>
 <div class="container" style="padding-top:15px;">
-	<button id="button" class="btn btn-success">OK</button>
+	<button id="button_reg" class="btn btn-success">OK</button>
 </div>
 </form>
 
 <script>
 $(document).ready (function(){
-	$('#button').click(function() {
+	$('#button_reg').click(function() {
 		var name = $("#name").val();
 		var email = $("#email").val();
 		var password = $("#password").val();
