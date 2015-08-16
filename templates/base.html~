@@ -1,3 +1,4 @@
+{% extends "article.html" %}
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -34,10 +35,7 @@
 					<div class="form-group" style="color:red; font-size:16px;">
             			{{ name }}
 					</div>
-					<div id = "button_logout" class="form-group" style="color:red; font-size:16px;" href="/logout/">
-            			"Logout"
-					</div>
-						<!--<button id = "button_logout" type="submit" formaction="/logout/" class="btn btn-success">Logout</button>-->
+						<button id = "button_logout" type="submit" formaction="/logout/" class="btn btn-success">Logout</button>
 				</form>
 			</div>
 			<script>
@@ -90,7 +88,8 @@
    
     <div class="container">
       <div class="myblock">
-		{{ myblock }}	
+		{{ myblock }}
+		<!--{% block article %}{% endblock %}-->
 		
 	  </div>    
 	

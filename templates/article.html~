@@ -1,0 +1,6 @@
+<h1>ARTICLE TITLE</h1>
+<div>
+{{ article_text }}
+</div>
+<div>Date: {{ article_date }}</div>
+<div>Author: {{ article_author }}</div>
