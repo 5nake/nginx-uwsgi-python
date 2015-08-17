@@ -1,0 +1,30 @@
+<h1>{{ article_title }}</h1>
+<div>
+{{ article_text }}
+</div>
+<div>Date: {{ article_date }}</div>
+<div>Author: {{ article_author }}</div>
+
+{% if name %}
+<form>
+
+<div class="form-group" style="padding-top:18px;">
+    <textarea type="text" id = "article_text" class="form-control status-box-text" rows="2" placeholder="What's on your mind?"></textarea>
+</div>
+
+<button id="addcomment" class="btn btn-success">Post</button>
+</form>
+{% endif %}
+
+<div style="padding-top:20px;">
+Comments:
+<br/>
+{{ comments['comment_text'] }} <br/>
+{{ comments['comment_author'] }}
+{{ comments['comment_date'] }}
+</div>
+
+
+<hr>
+<div style="padding-top:28px;">COMMENTS</div>
+

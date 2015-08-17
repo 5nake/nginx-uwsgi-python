@@ -1,0 +1,58 @@
+<form>
+<div class="contacts form-group">
+    <textarea type="text" id = "article_title" class="form-control status-box-title" rows="1" placeholder="Article Title"></textarea>
+</div>
+<div class="form-group">
+    <textarea type="text" id = "article_text" class="form-control status-box-text" rows="20" placeholder="Content"></textarea>
+</div>
+
+<button id="addart" class="btn btn-success">Post</button>
+
+</form>
+
+<script>
+$(document).ready(function(){
+	$('#addart').click(function() {
+		var article_title = $("#article_title").val();
+		var article_text = $("#article_text").val();
+		
+		var today = new Date();
+		var dd = today.getDate();
+		var mm = today.getMonth()+1; //January is 0!
+		var yyyy = today.getFullYear();
+        var hh = today.getHours();
+        var mi = today.getMinutes();
+        var ss = today.getSeconds();
+		if(dd<10){
+    		dd='0'+dd
+		} 
+		if(mm<10){
+    		mm='0'+mm
+		} 
+        if(hh<10){
+    		hh='0'+hh
+		}
+        if(mi<10){
+    		mi='0'+mi
+		} 
+        if(ss<10){
+    		ss='0'+ss
+		} 
+		var user_date = yyyy+'-'+mm+'-'+dd+' '+hh+':'+mi+':'+ss;
+		$.post("/add/article/add/", { article_title: article_title, article_text: article_text, user_date: user_date },
+		function(data){
+			if (data === "Please fill all fields!") {
+				alert("Please fill all fields!")
+			} else if (data === "NONAME") {
+				alert ("Only authorized users can publish articles!")
+    		} else if (data === "OK") {
+				alert("Article Published!")
+				window.location.href = ("/")
+			} else {
+				alert("FATAL ERROR")
+			};
+		});
+	return false;
+	});
+});
+</script>
