@@ -1,6 +1,7 @@
 from jinja2 import Template, Environment, FileSystemLoader
 from cgi import parse_qs, escape
 from psycopg2 import extras
+from pprint import pprint
 import time
 import Cookie
 import cgi
@@ -77,6 +78,8 @@ def application(environ, start_response):
 		output = base_page.render(myblock=add_article_page, name=name)
 	elif uri == '/add/article/add/':
 		output = add_article(environ, start_response, cur, name)
+	elif uri == '/add/comment/add/':
+		output = add_comment(environ, start_response, cur, name)
 	elif re.match(r'/contacts/.*', uri):
 		with open('/home/user/myapp/templates/contacts.html', 'r') as f:
 			contacts_page = f.read()
@@ -241,10 +244,9 @@ def article(environ, start_response, cur, uri, name):
 		article_text = article_db['article_text']
 		article_date = article_db['article_date']
 
-		dict_cur.execute("SELECT * from comments WHERE article_idc=%s;", (article_id, ))
+		dict_cur.execute("SELECT * from comments WHERE article_idc=%s ORDER BY comment_id DESC;", (article_id, ))
 		comments_db = dict_cur.fetchall()
-		comments_db = comments_db[0]
-
+		comments_db
 		article_content = article_template.render(article_title = article_title, article_text = article_text, article_date = article_date, article_author = article_author, name=name, comments = comments_db)
 
 		return {'output': article_content, 'status': '200 OK'}
@@ -274,3 +276,24 @@ def add_article(environ, start_response, cur, name):
 			data_insert = (article_author, article_title, article_text, article_date)
 			cur.execute(SQL_INSERT, data_insert)
 			return "OK"
+
+def add_comment(environ, start_response, cur, name):
+	if name == "":
+		return "NONAME"
+	else:
+		#Form Parsing Block
+		try:
+			request_body_size = int(environ.get('CONTENT_LENGTH', 0))
+		except (ValueError):
+			request_body_size = 0
+		request_body = environ['wsgi.input'].read(request_body_size)
+		d = parse_qs(request_body)
+		article_idc = d['location'][0]
+		article_idc = article_idc[8:]
+		comment_author = name
+		comment_text = d['comment_text'][0]
+		comment_date = time.strftime("%Y-%m-%d %H:%M:%S")
+		SQL_INSERT = "INSERT INTO comments (article_idc, comment_author, comment_text, comment_date) VALUES (%s, %s, %s, %s);"
+		data_insert = (article_idc, comment_author, comment_text, comment_date)
+		cur.execute(SQL_INSERT, data_insert)
+		return "OK"

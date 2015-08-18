@@ -1,3 +1,4 @@
+
 <h1>{{ article_title }}</h1>
 <div>
 {{ article_text }}
@@ -9,22 +10,58 @@
 <form>
 
 <div class="form-group" style="padding-top:18px;">
-    <textarea type="text" id = "article_text" class="form-control status-box-text" rows="2" placeholder="What's on your mind?"></textarea>
+    <textarea type="text" id = "comment_input" class="form-control status-box-text" rows="2" placeholder="What's on your mind?"></textarea>
 </div>
 
-<button id="addcomment" class="btn btn-success">Post</button>
+<button type="button" id="addcomment" class="btn btn-success">Post</button>
 </form>
 {% endif %}
 
+<hr>
 <div style="padding-top:20px;">
 Comments:
 <br/>
-{{ comments['comment_text'] }} <br/>
-{{ comments['comment_author'] }}
-{{ comments['comment_date'] }}
+{% for comment in comments %}
+{{ comment['comment_text'] }} <br/>
+{{ comment['comment_author'] }}
+{{ comment['comment_date'] }} <br/><br/>
+{% endfor %}
 </div>
 
 
-<hr>
-<div style="padding-top:28px;">COMMENTS</div>
+<script>
+$(document).ready(function(){
+	$('#addcomment').click(function() {
+		var comment_text = $("#comment_input").val();
+		var location = window.location.pathname.substr(1)
+		var sendData = { SendInfo:
+			[Comment_text: comment_text,
+			Location: location]
+		};
+		//$.post("/add/comment/add/", { comment_text: comment_text, location: window.location.pathname.substr(1) },
+			//function(data){
+    			//if (data === "NONAME") {
+					//alert("Only authorized users can publish comments!")
+					//window.location.href = ("/")
+				//} else {
+					//window.location.reload()
+				//};
+		//});
+		$.ajax({
+           type: "POST",
+           url: "/add/comment/add/",
+           contentType: "application/json; charset=utf-8",
+           success: function (msg) {
+               if (msg) {
+                   alert("Somebody");
+               } else {
+                   alert("Cannot add to list !");
+               }
+           },
+           data: JSON.stringify(sendData)
+       });
+	});
+	return false;
+});
+</script>
 

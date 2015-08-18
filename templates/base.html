@@ -43,7 +43,7 @@
 				$('#button_logout').click(function() {
 				$.get("/logout/",
 					function(data){
-						window.location.href = ("/")
+						window.location.reload()
 				});
 				return false;
 				});
@@ -70,7 +70,7 @@
 				$.post("/auth/", { email: email, password: password },
 					function(data){
     				if (data === "INSERT SESSION DATA") {
-						window.location.href = ("/")
+						window.location.reload()
 					} else {
 						alert("WRONG USER DATA!")
 					};
