@@ -1,6 +1,62 @@
+
 <h1>{{ article_title }}</h1>
 <div>
 {{ article_text }}
 </div>
 <div>Date: {{ article_date }}</div>
 <div>Author: {{ article_author }}</div>
+
+{% if name %}
+<form autocomplete="off">
+
+<div class="form-group" style="padding-top:18px;">
+    <textarea type="text" id = "comment_input" class="form-control status-box-text" rows="2" placeholder="What's on your mind?"></textarea>
+</div>
+
+<button type="button" id="addcomment" class="btn btn-success">Post</button>
+</form>
+{% endif %}
+
+<hr>
+<div style="padding-top:20px;">
+Comments:
+<br/>
+<div id='content'>
+{% for comment in comments %}
+{{ comment['comment_text'] }}<br/>
+{{ comment['comment_author'] }}
+{{ comment['comment_date'] }}<br/><br/>
+{% endfor %}
+</div>
+</div>
+
+
+<script>
+$(document).ready(function(){
+	$('#addcomment').click(function() {
+		var comment_text = $("#comment_input").val();
+		function parse(str) {
+    		var args = [].slice.call(arguments, 1),
+ 				i = 0;
+
+    		return str.replace(/%s/g, function() {
+        		return args[i++];
+    		});
+		}
+		$.post("/add/comment/add/", { comment_text: comment_text, location: window.location.pathname.substr(1) },
+			function(data){
+    			if (data === "NONAME") {
+					alert("Only authorized users can publish comments!");
+					window.location.href = ("/")
+				} else {
+					s = parse('%s<br>%s %s<br><br>', comment_text, data.comment_author, data.comment_date);
+					var div = document.createElement('div');
+					div.innerHTML = s;
+					newParent = document.getElementById('content');
+					newParent.insertBefore(div, newParent.firstChild);
+				}}, "json");
+	return false;
+	});
+});
+</script>
+

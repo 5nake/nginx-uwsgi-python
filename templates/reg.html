@@ -1,6 +1,5 @@
 <form>
 <div class="container">
-	
 	<p style="padding-top:30px;">Hello there!<br/><br/>Please, input your Nickname</p>
 	<input type="text" placeholder="Name" name="name" id="reg_name">
     
@@ -11,13 +10,13 @@
 	<input type="password" placeholder="Password" name="password" id="reg_password"> 
 </div>
 <div class="container" style="padding-top:15px;">
-	<button id="button_reg" class="btn btn-success">OK</button>
+	<button type="submit" class="btn btn-success">OK</button>
 </div>
 </form>
 
 <script>
 $(document).ready (function(){
-	$('#button_reg').click(function() {
+	$('form').on('submit', function() {
 		var reg_name = $("#reg_name").val();
 		var reg_email = $("#reg_email").val();
 		var reg_password = $("#reg_password").val();
@@ -28,8 +27,7 @@ $(document).ready (function(){
 					window.location.href = ("/")
 				} else {
 					alert(data)
-				};
-		});
+				}}, "json");
 	return false;
 	});
 });

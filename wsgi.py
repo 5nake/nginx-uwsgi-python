@@ -1,5 +1,8 @@
 from jinja2 import Template, Environment, FileSystemLoader
 from cgi import parse_qs, escape
+from psycopg2 import extras
+from pprint import pprint
+import json
 import time
 import Cookie
 import cgi
@@ -11,8 +14,8 @@ import psycopg2
 
 key = "Blast"
 
-def response(environ, start_response, output, status, cookie):
-	headers = [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))]
+def response(environ, start_response, output, status, cookie, content_type):
+	headers = [('Content-Type', '%s; charset=utf-8'%content_type), ('Content-Length', str(len(output)))]
 	if cookie:
 		set_cookies = ('Set-Cookie', cookie)
 		headers.insert(0, set_cookies)
@@ -42,6 +45,7 @@ def application(environ, start_response):
 	#URI BLOCK. Match (re.match()) objects are always True, and None if there's no match.
 	status = "200 OK"
 	cookie = False
+	content_type = 'text/html'
 	print(uri)
 	if uri == "/":
 		with open('/home/user/myapp/templates/test/p1.html', 'r') as f:
@@ -53,9 +57,12 @@ def application(environ, start_response):
 		output = base_page.render(myblock=reg_page, name=name)
 	elif uri == '/reg/reg/':
 		output = reg(environ, start_response, cur)
+		content_type = "application/json"
 	elif uri == '/auth/':
 		out = auth(environ, start_response, cur) #output + cookies in one tuple!
 		output = out['output']
+		output = json.dumps(output)
+		content_type = "application/json"
 		session_cookie = out['cookie']
 		if session_cookie:
 			cookie=session_cookie
@@ -63,19 +70,22 @@ def application(environ, start_response):
 		output = check_auth(environ, start_response, cur)	
 	elif uri == '/logout/':
 		output = logout(environ, start_response, cur)
-	elif re.match(r'/article/\d', uri):
-		article_response = article(environ, start_response, cur, uri)
+	elif re.match(r'/article/\d{1,4}$', uri):
+		article_response = article(environ, start_response, cur, uri, name)
 		if article_response['output'] == '404 Not Found':
 			output = base_page.render(myblock=page_404, name=name)
 			status="404 Not Found"
 		else:
-			output = base_page.render(myblock=article_response['output'])
+			output = base_page.render(myblock=article_response['output'], name=name)
 	elif uri == '/add/article/':
 		with open('/home/user/myapp/templates/add_article.html', 'r') as f:
 			add_article_page = f.read()
 		output = base_page.render(myblock=add_article_page, name=name)
 	elif uri == '/add/article/add/':
-		output = add_article(environ, start_response, cur)
+		content_type = "application/json"
+		output = add_article(environ, start_response, cur, name)
+	elif uri == '/add/comment/add/':
+		output = add_comment(environ, start_response, cur, name)
 	elif re.match(r'/contacts/.*', uri):
 		with open('/home/user/myapp/templates/contacts.html', 'r') as f:
 			contacts_page = f.read()
@@ -86,7 +96,7 @@ def application(environ, start_response):
 	if cur is not None:
 		cur.close()
 		conn.close()
-	return response(environ, start_response, output, status, cookie)
+	return response(environ, start_response, output, status, cookie, content_type)
 
 def auth(environ, start_response, cur):
 	#DEF Block
@@ -104,8 +114,8 @@ def auth(environ, start_response, cur):
 	d = parse_qs(request_body)
 	email = d.get('email', [''])[0]
 	password = d.get('password', [''])[0]
-	email = escape(email)
-	password = escape(password)
+	email = cgi.escape(email)
+	password = cgi.escape(password)
 	#Psycopg block2 (PostgreSQL)
 	SQL_SELECT = "SELECT id FROM users WHERE login = %s AND password = %s;"
 	data_select = (str(email), str(password))
@@ -138,30 +148,32 @@ def reg(environ, start_response, cur):
 	reg_name = d.get('reg_name', [''])[0]
 	reg_email = d.get('reg_email', [''])[0]
 	reg_password = d.get('reg_password', [''])[0]
-	reg_name = escape(reg_name)	
-	reg_email = escape(reg_email)
-	reg_password = escape(reg_password)
-	
+	reg_name = cgi.escape(reg_name)	
+	reg_email = cgi.escape(reg_email)
+	reg_password = cgi.escape(reg_password)
 	#SQL block
 	if reg_name == "" or reg_email == "" or reg_password == "":
-		return "Please fill all fields!"
+		return json.dumps("Please fill all fields!")
 	else:
-		SQL_SELECT = "SELECT name, login from users WHERE name = %s AND login = %s;"
-		data_select = (str(reg_name), str(reg_email))	
-		cur.execute(SQL_SELECT, data_select)
-		users_db = cur.fetchall()
-		if users_db == []:
-			SQL_INSERT = "INSERT INTO users (name, login, password) VALUES (%s, %s, %s);"
-			data_insert = (str(reg_name), str(reg_email), str(reg_password))
-			cur.execute(SQL_INSERT, data_insert)
-			return "Registration successfull!"
+		if not re.match(r"^[A-Za-z0-9\.\+_-]+@[A-Za-z0-9\._-]+\.[a-zA-Z]*$", reg_email):
+			return json.dumps("InValid Email!")
 		else:
-			db_name = str(users_db[0][0])
-			db_email = str(users_db[0][1])
-			if db_name == reg_name:
-				return "Name already exists!"
-			elif db_email == reg_email:
-				return "Email already exists!"
+			SQL_SELECT = "SELECT name, login from users WHERE name = %s AND login = %s;"
+			data_select = (str(reg_name), str(reg_email))	
+			cur.execute(SQL_SELECT, data_select)
+			users_db = cur.fetchall()
+			if users_db == []:
+				SQL_INSERT = "INSERT INTO users (name, login, password) VALUES (%s, %s, %s);"
+				data_insert = (str(reg_name), str(reg_email), str(reg_password))
+				cur.execute(SQL_INSERT, data_insert)
+				return json.dumps("Registration successfull!")
+			else:
+				db_name = str(users_db[0][0])
+				db_email = str(users_db[0][1])
+				if db_name == reg_name:
+					return json.dumps("Name already exists!")
+				elif db_email == reg_email:
+					return json.dumps("Email already exists!")
 
 def check_auth(environ, start_response, cur):
 	global key
@@ -220,35 +232,76 @@ def logout(environ, start_response, cur):
 		cur.execute("DELETE FROM sessions WHERE user_id = %s;", (user_id, ))
 		return "LOGOUT"
 
-def article(environ, start_response, cur, uri):
+def article(environ, start_response, cur, uri, name):
 	article_id = uri[9:]
-	cur.execute("SELECT * from articles WHERE article_id = %s;", (article_id, ))
-	article_db = cur.fetchall()
+
+	conn = psycopg2.connect("dbname=mydb user=postgres password=G898Q8QArma")		
+	dict_cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+	dict_cur.execute("SELECT * from articles WHERE article_id=%s;", (article_id, ))
+	article_db = dict_cur.fetchall()
+	article_db = article_db[0]
 	if article_db == []:
 		return {'output': '404 Not Found', 'status': "404 Not Found"}
 	else:
 		with open('/home/user/myapp/templates/article.html', 'r') as f:
 			article_template = Template(f.read())
-		article_author = article_db[0][1]	
-		article_title = article_db[0][2]
-		article_text = article_db[0][3]
-		article_date = article_db[0][4]
-		article_page = article_template.render(article_title = article_title, article_text = article_text, article_date = article_date, article_author = article_author)
-		return {'output': article_page, 'status': '200 OK'}
+		article_author = article_db['article_author']	
+		article_title = article_db['article_title']
+		article_text = article_db['article_text']
+		article_date = article_db['article_date']
 
-def add_article(environ, start_response, cur):
-	#Form Parsing Block
-	try:
-		request_body_size = int(environ.get('CONTENT_LENGTH', 0))
-	except (ValueError):
-		request_body_size = 0
-	request_body = environ['wsgi.input'].read(request_body_size)
-	d = parse_qs(request_body)
-	article_author = d['article_author'][0]
-	article_title = d['article_title'][0]
-	article_text = d['article_text'][0]
-	article_date = d['article_date'][0]
-	SQL_INSERT = "INSERT INTO articles (user_name, article_title, article_text, article_date) VALUES (%s, %s, %s, %s);"
-	data_insert = (article_author, article_title, article_text, article_date)
-	cur.execute(SQL_INSERT, data_insert)
-	return "OK"
+		dict_cur.execute("SELECT * from comments WHERE article_idc=%s ORDER BY comment_id DESC;", (article_id, ))
+		comments_db = dict_cur.fetchall()
+		comments_db
+		article_content = article_template.render(article_title = article_title, article_text = article_text, article_date = article_date, article_author = article_author, name=name, comments = comments_db)
+
+		return {'output': article_content, 'status': '200 OK'}
+
+def add_article(environ, start_response, cur, name):
+	if name == "":
+		return json.dumps("NONAME")
+	else:	
+		#Form Parsing Block
+		try:
+			request_body_size = int(environ.get('CONTENT_LENGTH', 0))
+		except (ValueError):
+			request_body_size = 0
+		request_body = environ['wsgi.input'].read(request_body_size)
+		d = parse_qs(request_body)
+		if len(d) < 3:
+			return json.dumps("Please fill all fields!")
+		else:
+			article_author = name
+			article_date = time.strftime("%Y-%m-%d %H:%M:%S")
+			user_date = d['user_date'][0]
+			article_title = d['article_title'][0]
+			article_title = cgi.escape(article_title)
+			article_text = d['article_text'][0]
+			article_text = cgi.escape(article_text)
+			SQL_INSERT = "INSERT INTO articles (article_author, article_title, article_text, article_date) VALUES (%s, %s, %s, %s);"
+			data_insert = (article_author, article_title, article_text, article_date)
+			cur.execute(SQL_INSERT, data_insert)
+			return json.dumps("OK")
+
+def add_comment(environ, start_response, cur, name):
+	if name == "":
+		js_response = json.dumps("NONAME")
+		return js_response
+	else:
+		#Form Parsing Block
+		try:
+			request_body_size = int(environ.get('CONTENT_LENGTH', 0))
+		except (ValueError):
+			request_body_size = 0
+		request_body = environ['wsgi.input'].read(request_body_size)
+		d = parse_qs(request_body)
+		article_idc = d['location'][0]
+		article_idc = article_idc[8:]
+		comment_author = name
+		comment_text = d['comment_text'][0]
+		comment_date = time.strftime("%Y-%m-%d %H:%M:%S")
+		SQL_INSERT = "INSERT INTO comments (article_idc, comment_author, comment_text, comment_date) VALUES (%s, %s, %s, %s);"
+		data_insert = (article_idc, comment_author, comment_text, comment_date)
+		cur.execute(SQL_INSERT, data_insert)
+		js_response = json.dumps({'comment_author': comment_author, 'comment_date': comment_date})
+		return js_response

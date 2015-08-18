@@ -1,38 +1,34 @@
 <form>
 <div class="container">
-	
 	<p style="padding-top:30px;">Hello there!<br/><br/>Please, input your Nickname</p>
-	<input type="text" placeholder="Name" name="name" id="name">
+	<input type="text" placeholder="Name" name="name" id="reg_name">
     
 	<p style="padding-top:15px;">Then input your email</p>
-	<input type="email" placeholder="Email" name="email" id="email">
+	<input type="email" placeholder="Email" name="email" id="reg_email">
     
 	<p style="padding-top:15px;">At least, input your password</p>
-	<input type="password" placeholder="Password" name="password" id="password"> 
+	<input type="password" placeholder="Password" name="password" id="reg_password"> 
 </div>
 <div class="container" style="padding-top:15px;">
-	<button id="button_reg" class="btn btn-success">OK</button>
+	<button type="submit" class="btn btn-success">OK</button>
 </div>
 </form>
 
 <script>
 $(document).ready (function(){
-	$('#button_reg').click(function() {
-		var name = $("#name").val();
-		var email = $("#email").val();
-		var password = $("#password").val();
-		$.post("/reg/reg/", { name: name, email: email, password: password },
+	$('form').on('submit', function() {
+		var reg_name = $("#reg_name").val();
+		var reg_email = $("#reg_email").val();
+		var reg_password = $("#reg_password").val();
+		$.post("/reg/reg/", { reg_name: reg_name, reg_email: reg_email, reg_password: reg_password },
 				function(data){
     			if (data === "Registration successfull!") {
 					alert("Registration successfull!")
 					window.location.href = ("/")
 				} else {
 					alert(data)
-				};
-		});
+				}} "json");
 	return false;
 	});
 });
 </script>
-
-<!--DO: if data == name already exists | email already exists ==> ALERT else ==> redirect to SUCCESFULL PAGE -->
