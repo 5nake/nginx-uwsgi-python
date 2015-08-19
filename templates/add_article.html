@@ -1,9 +1,16 @@
 <form>
 <div class="contacts form-group">
+<<<<<<< HEAD
     <textarea type="text" id = "article_title" class="form-control status-box-title" rows="1" placeholder="Article Title" required></textarea>
 </div>
 <div class="form-group">
     <textarea type="text" id = "article_text" class="form-control status-box-text" rows="20" placeholder="Content" required></textarea>
+=======
+    <textarea type="text" id = "article_title" class="form-control status-box-title" rows="1" placeholder="Article Title"></textarea>
+</div>
+<div class="form-group">
+    <textarea type="text" id = "article_text" class="form-control status-box-text" rows="20" placeholder="Content"></textarea>
+>>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 </div>
 
 <button type="submit" class="btn btn-success">Post</button>
@@ -41,11 +48,23 @@ $(document).ready(function(){
 		var user_date = yyyy+'-'+mm+'-'+dd+' '+hh+':'+mi+':'+ss;
 		$.post("/add/article/add/", { article_title: article_title, article_text: article_text, user_date: user_date },
 		function(data){
+<<<<<<< HEAD
 			if (data.status === "ok") {
 				alert("Article Published!")
 				window.location.href = ("/")
 			} else {
 				alert(data.error)
+=======
+			if (data === "Please fill all fields!") {
+				alert("Please fill all fields!")
+			} else if (data === "NONAME") {
+				alert ("Only authorized users can publish articles!")
+    		} else if (data === "OK") {
+				alert("Article Published!")
+				window.location.href = ("/")
+			} else {
+				alert("FATAL ERROR")
+>>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 			}}, "json");
 	return false;
 	});

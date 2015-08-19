@@ -7,6 +7,7 @@
 <div>Author: {{ article_author }}</div>
 
 {% if name %}
+<<<<<<< HEAD
 <form id="second_form" autocomplete="off">
 
 <div class="form-group" style="padding-top:18px;">
@@ -14,6 +15,15 @@
 </div>
 
 <button type="submit" id="addcomment" class="btn btn-success">Post</button>
+=======
+<form autocomplete="off">
+
+<div class="form-group" style="padding-top:18px;">
+    <textarea type="text" id = "comment_input" class="form-control status-box-text" rows="2" placeholder="What's on your mind?"></textarea>
+</div>
+
+<button type="button" id="addcomment" class="btn btn-success">Post</button>
+>>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 </form>
 {% endif %}
 
@@ -33,7 +43,11 @@ Comments:
 
 <script>
 $(document).ready(function(){
+<<<<<<< HEAD
 	$('form#second_form').on('submit', function() {
+=======
+	$('#addcomment').click(function() {
+>>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 		var comment_text = $("#comment_input").val();
 		function parse(str) {
     		var args = [].slice.call(arguments, 1),
@@ -45,10 +59,17 @@ $(document).ready(function(){
 		}
 		$.post("/add/comment/add/", { comment_text: comment_text, location: window.location.pathname.substr(1) },
 			function(data){
+<<<<<<< HEAD
     			if (data.status === "error") {
 					alert(data.error);
 					window.location.href = ("/")
 				} else if (data.status === "ok") {
+=======
+    			if (data === "NONAME") {
+					alert("Only authorized users can publish comments!");
+					window.location.href = ("/")
+				} else {
+>>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 					s = parse('%s<br>%s %s<br><br>', comment_text, data.comment_author, data.comment_date);
 					var div = document.createElement('div');
 					div.innerHTML = s;
