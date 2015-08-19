@@ -7,13 +7,13 @@
 <div>Author: {{ article_author }}</div>
 
 {% if name %}
-<form>
+<form id="second_form" autocomplete="off">
 
 <div class="form-group" style="padding-top:18px;">
-    <textarea type="text" id = "comment_input" class="form-control status-box-text" rows="2" placeholder="What's on your mind?"></textarea>
+    <textarea type="text" id = "comment_input" class="form-control status-box-text" rows="2" placeholder="What's on your mind?" required></textarea>
 </div>
 
-<button type="button" id="addcomment" class="btn btn-success">Post</button>
+<button type="submit" id="addcomment" class="btn btn-success">Post</button>
 </form>
 {% endif %}
 
@@ -21,33 +21,42 @@
 <div style="padding-top:20px;">
 Comments:
 <br/>
+<div id='content'>
 {% for comment in comments %}
-{{ comment['comment_text'] }} <br/>
+{{ comment['comment_text'] }}<br/>
 {{ comment['comment_author'] }}
-{{ comment['comment_date'] }} <br/><br/>
+{{ comment['comment_date'] }}<br/><br/>
 {% endfor %}
+</div>
 </div>
 
 
 <script>
 $(document).ready(function(){
-	$('#addcomment').click(function() {
+	$('form#second_form').on('submit', function() {
 		var comment_text = $("#comment_input").val();
-		var location = window.location.pathname.substr(1)
-		var sendData = { SendInfo:
-			[Comment_text: comment_text,
-			Location: location]
-		};
+		function parse(str) {
+    		var args = [].slice.call(arguments, 1),
+ 				i = 0;
+
+    		return str.replace(/%s/g, function() {
+        		return args[i++];
+    		});
+		}
 		$.post("/add/comment/add/", { comment_text: comment_text, location: window.location.pathname.substr(1) },
 			function(data){
-    			if (data === "NONAME") {
-					alert("Only authorized users can publish comments!")
+    			if (data.status === "error") {
+					alert(data.error);
 					window.location.href = ("/")
-				} else {
-					window.location.reload()
-				};
-		});
+				} else if (data.status === "ok") {
+					s = parse('%s<br>%s %s<br><br>', comment_text, data.comment_author, data.comment_date);
+					var div = document.createElement('div');
+					div.innerHTML = s;
+					newParent = document.getElementById('content');
+					newParent.insertBefore(div, newParent.firstChild);
+				}}, "json");
 	return false;
+	});
 });
 </script>
 

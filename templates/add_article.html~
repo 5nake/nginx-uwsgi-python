@@ -6,13 +6,13 @@
     <textarea type="text" id = "article_text" class="form-control status-box-text" rows="20" placeholder="Content"></textarea>
 </div>
 
-<button id="addart" class="btn btn-success">Post</button>
+<button type="submit" class="btn btn-success">Post</button>
 
 </form>
 
 <script>
 $(document).ready(function(){
-	$('#addart').click(function() {
+	$('form').on('submit', function() {
 		var article_title = $("#article_title").val();
 		var article_text = $("#article_text").val();
 		
@@ -41,17 +41,12 @@ $(document).ready(function(){
 		var user_date = yyyy+'-'+mm+'-'+dd+' '+hh+':'+mi+':'+ss;
 		$.post("/add/article/add/", { article_title: article_title, article_text: article_text, user_date: user_date },
 		function(data){
-			if (data === "Please fill all fields!") {
-				alert("Please fill all fields!")
-			} else if (data === "NONAME") {
-				alert ("Only authorized users can publish articles!")
-    		else if (data === "OK") {
+			if (data.status === "ok") {
 				alert("Article Published!")
 				window.location.href = ("/")
 			} else {
-				alert("FATAL ERROR")
-			};
-		});
+				alert(data.error)
+			}}, "json");
 	return false;
 	});
 });

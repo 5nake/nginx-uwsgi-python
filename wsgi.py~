@@ -2,6 +2,7 @@ from jinja2 import Template, Environment, FileSystemLoader
 from cgi import parse_qs, escape
 from psycopg2 import extras
 from pprint import pprint
+import json
 import time
 import Cookie
 import cgi
@@ -13,8 +14,8 @@ import psycopg2
 
 key = "Blast"
 
-def response(environ, start_response, output, status, cookie):
-	headers = [('Content-Type', 'text/html; charset=utf-8'), ('Content-Length', str(len(output)))]
+def response(environ, start_response, output, status, cookie, content_type):
+	headers = [('Content-Type', '%s; charset=utf-8'%content_type), ('Content-Length', str(len(output)))]
 	if cookie:
 		set_cookies = ('Set-Cookie', cookie)
 		headers.insert(0, set_cookies)
@@ -44,9 +45,10 @@ def application(environ, start_response):
 	#URI BLOCK. Match (re.match()) objects are always True, and None if there's no match.
 	status = "200 OK"
 	cookie = False
+	content_type = 'text/html'
 	print(uri)
 	if uri == "/":
-		with open('/home/user/myapp/templates/test/p1.html', 'r') as f:
+		with open('/home/user/myapp/templates/p1.html', 'r') as f:
 			p1 = f.read()
 		output = base_page.render(myblock=p1, name=name)
 	elif uri == '/reg/':
@@ -55,9 +57,12 @@ def application(environ, start_response):
 		output = base_page.render(myblock=reg_page, name=name)
 	elif uri == '/reg/reg/':
 		output = reg(environ, start_response, cur)
+		content_type = "application/json"
 	elif uri == '/auth/':
 		out = auth(environ, start_response, cur) #output + cookies in one tuple!
 		output = out['output']
+		output = json.dumps(output)
+		content_type = "application/json"
 		session_cookie = out['cookie']
 		if session_cookie:
 			cookie=session_cookie
@@ -77,6 +82,7 @@ def application(environ, start_response):
 			add_article_page = f.read()
 		output = base_page.render(myblock=add_article_page, name=name)
 	elif uri == '/add/article/add/':
+		content_type = "application/json"
 		output = add_article(environ, start_response, cur, name)
 	elif uri == '/add/comment/add/':
 		output = add_comment(environ, start_response, cur, name)
@@ -90,7 +96,7 @@ def application(environ, start_response):
 	if cur is not None:
 		cur.close()
 		conn.close()
-	return response(environ, start_response, output, status, cookie)
+	return response(environ, start_response, output, status, cookie, content_type)
 
 def auth(environ, start_response, cur):
 	#DEF Block
@@ -124,9 +130,9 @@ def auth(environ, start_response, cur):
 		expires = time.time() + 30 * 24 * 3600
 		session_expires = time.strftime("%a, %d-%b-%Y, %T GMT", time.gmtime(expires))
 		session_cookie = "sessions=%s,%s; PATH=/; EXPIRES=%s"%(session_id, ident_id, session_expires)
-		return {'output': "INSERT SESSION DATA", 'cookie': session_cookie}
+		return {'output': {'status': 'ok'}, 'cookie': session_cookie}
 	else:
-		return {'output': "WRONG USER DATA!!", 'cookie': False}
+		return {'output': {'status': 'error', 'error': 'WRONG USER DATA!'}, 'cookie': False}
 
 
 
@@ -147,12 +153,12 @@ def reg(environ, start_response, cur):
 	reg_password = cgi.escape(reg_password)
 	#SQL block
 	if reg_name == "" or reg_email == "" or reg_password == "":
-		return "Please fill all fields!"
+		return json.dumps({'status': 'error', 'error': 'Please, fill all fields!'})
 	else:
 		if not re.match(r"^[A-Za-z0-9\.\+_-]+@[A-Za-z0-9\._-]+\.[a-zA-Z]*$", reg_email):
-			return "InValid Email!"
+			return json.dumps({'status': 'error', 'error':'InValid Email!'})
 		else:
-			SQL_SELECT = "SELECT name, login from users WHERE name = %s AND login = %s;"
+			SQL_SELECT = "SELECT name, login from users WHERE name = %s OR login = %s;"
 			data_select = (str(reg_name), str(reg_email))	
 			cur.execute(SQL_SELECT, data_select)
 			users_db = cur.fetchall()
@@ -160,14 +166,15 @@ def reg(environ, start_response, cur):
 				SQL_INSERT = "INSERT INTO users (name, login, password) VALUES (%s, %s, %s);"
 				data_insert = (str(reg_name), str(reg_email), str(reg_password))
 				cur.execute(SQL_INSERT, data_insert)
-				return "Registration successfull!"
+				return json.dumps({'status': 'ok'})
 			else:
 				db_name = str(users_db[0][0])
 				db_email = str(users_db[0][1])
+				print(users_db)
 				if db_name == reg_name:
-					return "Name already exists!"
+					return json.dumps({'status': 'error', 'error':'Name already exists!'})
 				elif db_email == reg_email:
-					return "Email already exists!"
+					return json.dumps({'status': 'error', 'error':'Email already exists!'})
 
 def check_auth(environ, start_response, cur):
 	global key
@@ -253,7 +260,7 @@ def article(environ, start_response, cur, uri, name):
 
 def add_article(environ, start_response, cur, name):
 	if name == "":
-		return "NONAME"
+		return json.dumps({'status': 'error', 'error': 'unauthorized user!'})
 	else:	
 		#Form Parsing Block
 		try:
@@ -263,7 +270,7 @@ def add_article(environ, start_response, cur, name):
 		request_body = environ['wsgi.input'].read(request_body_size)
 		d = parse_qs(request_body)
 		if len(d) < 3:
-			return "Please fill all fields!"
+			return json.dumps({'status': 'error', 'error': 'Please, fill all fields!'})
 		else:
 			article_author = name
 			article_date = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -275,11 +282,12 @@ def add_article(environ, start_response, cur, name):
 			SQL_INSERT = "INSERT INTO articles (article_author, article_title, article_text, article_date) VALUES (%s, %s, %s, %s);"
 			data_insert = (article_author, article_title, article_text, article_date)
 			cur.execute(SQL_INSERT, data_insert)
-			return "OK"
+			return json.dumps({'status': 'ok'})
 
 def add_comment(environ, start_response, cur, name):
 	if name == "":
-		return "NONAME"
+		js_response = json.dumps({'status': 'error', 'error': 'unauthorized user!'})
+		return js_response
 	else:
 		#Form Parsing Block
 		try:
@@ -287,15 +295,14 @@ def add_comment(environ, start_response, cur, name):
 		except (ValueError):
 			request_body_size = 0
 		request_body = environ['wsgi.input'].read(request_body_size)
-		#d = parse_qs(request_body)
-		myjson = json.load(sys.stdin)
-		print(myjson)
-		#article_idc = d['location'][0]
-		#article_idc = article_idc[8:]
-		#comment_author = name
-		#comment_text = d['comment_text'][0]
-		#comment_date = time.strftime("%Y-%m-%d %H:%M:%S")
-		#SQL_INSERT = "INSERT INTO comments (article_idc, comment_author, comment_text, comment_date) VALUES (%s, %s, %s, %s);"
-		#data_insert = (article_idc, comment_author, comment_text, comment_date)
-		#cur.execute(SQL_INSERT, data_insert)
-		return "OK"
+		d = parse_qs(request_body)
+		article_idc = d['location'][0]
+		article_idc = article_idc[8:]
+		comment_author = name
+		comment_text = d['comment_text'][0]
+		comment_date = time.strftime("%Y-%m-%d %H:%M:%S")
+		SQL_INSERT = "INSERT INTO comments (article_idc, comment_author, comment_text, comment_date) VALUES (%s, %s, %s, %s);"
+		data_insert = (article_idc, comment_author, comment_text, comment_date)
+		cur.execute(SQL_INSERT, data_insert)
+		js_response = json.dumps({'status': 'ok', 'comment_author': comment_author, 'comment_date': comment_date})
+		return js_response
