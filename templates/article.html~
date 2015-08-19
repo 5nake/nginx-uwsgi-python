@@ -7,15 +7,18 @@
 <div>Author: {{ article_author }}</div>
 
 {% if name %}
-<form autocomplete="off">
+<<<<<<< HEAD
+<form id="second_form" autocomplete="off">
 
 <div class="form-group" style="padding-top:18px;">
-<<<<<<< HEAD
     <textarea type="text" id = "comment_input" class="form-control status-box-text" rows="2" placeholder="What's on your mind?" required></textarea>
 </div>
 
 <button type="submit" id="addcomment" class="btn btn-success">Post</button>
 =======
+<form autocomplete="off">
+
+<div class="form-group" style="padding-top:18px;">
     <textarea type="text" id = "comment_input" class="form-control status-box-text" rows="2" placeholder="What's on your mind?"></textarea>
 </div>
 
@@ -41,7 +44,7 @@ Comments:
 <script>
 $(document).ready(function(){
 <<<<<<< HEAD
-	$('form').on('submit', function() {
+	$('form#second_form').on('submit', function() {
 =======
 	$('#addcomment').click(function() {
 >>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
@@ -61,20 +64,16 @@ $(document).ready(function(){
 					alert(data.error);
 					window.location.href = ("/")
 				} else if (data.status === "ok") {
-					s = parse('%s<br>%s %s<br><br>', comment_text, data.comment_author, data.comment_date);
-					var div = document.createElement('div');
-					div.innerHTML = s;
-					newParent = document.getElementById('content');
 =======
     			if (data === "NONAME") {
 					alert("Only authorized users can publish comments!");
 					window.location.href = ("/")
 				} else {
+>>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 					s = parse('%s<br>%s %s<br><br>', comment_text, data.comment_author, data.comment_date);
 					var div = document.createElement('div');
 					div.innerHTML = s;
-					newParent = document.getElementById
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
+					newParent = document.getElementById('content');
 					newParent.insertBefore(div, newParent.firstChild);
 				}}, "json");
 	return false;

@@ -1,7 +1,6 @@
 <form>
 <div class="container">
 	<p style="padding-top:30px;">Hello there!<br/><br/>Please, input your Nickname</p>
-<<<<<<< HEAD
 	<input type="text" placeholder="Name" name="name" id="reg_name" required>
     
 	<p style="padding-top:15px;">Then input your email</p>
@@ -9,15 +8,6 @@
     
 	<p style="padding-top:15px;">At least, input your password</p>
 	<input type="password" placeholder="Password" name="password" id="reg_password" required> 
-=======
-	<input type="text" placeholder="Name" name="name" id="reg_name">
-    
-	<p style="padding-top:15px;">Then input your email</p>
-	<input type="email" placeholder="Email" name="email" id="reg_email">
-    
-	<p style="padding-top:15px;">At least, input your password</p>
-	<input type="password" placeholder="Password" name="password" id="reg_password"> 
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 </div>
 <div class="container" style="padding-top:15px;">
 	<button type="submit" class="btn btn-success">OK</button>
@@ -32,19 +22,11 @@ $(document).ready (function(){
 		var reg_password = $("#reg_password").val();
 		$.post("/reg/reg/", { reg_name: reg_name, reg_email: reg_email, reg_password: reg_password },
 				function(data){
-<<<<<<< HEAD
     			if (data.status === 'ok') {
 					alert('Registration successfull!')
 					window.location.href = ("/")
 				} else {
 					alert(data.error)
-=======
-    			if (data === "Registration successfull!") {
-					alert("Registration successfull!")
-					window.location.href = ("/")
-				} else {
-					alert(data)
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 				}}, "json");
 	return false;
 	});

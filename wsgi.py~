@@ -39,8 +39,11 @@ def application(environ, start_response):
 		base_page = Template(f.read())
 	with open('/home/user/myapp/templates/404.html') as f:
 		page_404 = f.read()
+<<<<<<< HEAD
+=======
 	with open('/home/user/myapp/templates/test/test.html', 'r') as f:
 		article_id = int(f.read()) #TEMP for testing (id=2)
+>>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 	
 	#URI BLOCK. Match (re.match()) objects are always True, and None if there's no match.
 	status = "200 OK"
@@ -353,6 +356,6 @@ def add_comment(environ, start_response, cur, name):
 <<<<<<< HEAD
 		js_response = json.dumps({'status': 'ok', 'comment_author': comment_author, 'comment_date': comment_date})
 =======
-		js_response = json.dumps("OK")
+		js_response = json.dumps({'comment_author': comment_author, 'comment_date': comment_date})
 >>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 		return js_response

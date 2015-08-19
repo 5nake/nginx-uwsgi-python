@@ -53,14 +53,19 @@
 			<div id="navbar" class="navbar-collapse collapse">
 <<<<<<< HEAD
 				<form id="first_form" class="navbar-form navbar-right" method="POST">
+				<div class="form-group">
+					<input type="email" placeholder="Email" class="form-control" name="email" id="email" required>
+        		</div>
+        		<div class="form-group">
+           			<input type="password" placeholder="Password" class="form-control" name="password" id="password" required> 
 =======
 				<form class="navbar-form navbar-right" method="POST">
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 				<div class="form-group">
 					<input type="email" placeholder="Email" class="form-control" name="email" id="email">
         		</div>
         		<div class="form-group">
            			<input type="password" placeholder="Password" class="form-control" name="password" id="password"> 
+>>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
         		</div>
             		<button type="submit" class="btn btn-success">Log in</button>
 					<a href="/reg/" class="btn btn-success">Sign In</a>
@@ -82,15 +87,13 @@
 						window.location.reload()
 					} else {
 						alert(data.error)
-					}}, "json");
 =======
     				if (data === "INSERT SESSION DATA") {
 						window.location.reload()
 					} else {
 						alert("WRONG USER DATA!")
-					};
-				});
 >>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
+					}}, "json");
 				return false;
 				});
 					});

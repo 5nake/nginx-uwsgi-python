@@ -39,11 +39,6 @@ def application(environ, start_response):
 		base_page = Template(f.read())
 	with open('/home/user/myapp/templates/404.html') as f:
 		page_404 = f.read()
-<<<<<<< HEAD
-=======
-	with open('/home/user/myapp/templates/test/test.html', 'r') as f:
-		article_id = int(f.read()) #TEMP for testing (id=2)
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 	
 	#URI BLOCK. Match (re.match()) objects are always True, and None if there's no match.
 	status = "200 OK"
@@ -51,11 +46,7 @@ def application(environ, start_response):
 	content_type = 'text/html'
 	print(uri)
 	if uri == "/":
-<<<<<<< HEAD
 		with open('/home/user/myapp/templates/p1.html', 'r') as f:
-=======
-		with open('/home/user/myapp/templates/test/p1.html', 'r') as f:
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 			p1 = f.read()
 		output = base_page.render(myblock=p1, name=name)
 	elif uri == '/reg/':
@@ -137,15 +128,9 @@ def auth(environ, start_response, cur):
 		expires = time.time() + 30 * 24 * 3600
 		session_expires = time.strftime("%a, %d-%b-%Y, %T GMT", time.gmtime(expires))
 		session_cookie = "sessions=%s,%s; PATH=/; EXPIRES=%s"%(session_id, ident_id, session_expires)
-<<<<<<< HEAD
 		return {'output': {'status': 'ok'}, 'cookie': session_cookie}
 	else:
 		return {'output': {'status': 'error', 'error': 'WRONG USER DATA!'}, 'cookie': False}
-=======
-		return {'output': "INSERT SESSION DATA", 'cookie': session_cookie}
-	else:
-		return {'output': "WRONG USER DATA!!", 'cookie': False}
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 
 
 
@@ -166,21 +151,12 @@ def reg(environ, start_response, cur):
 	reg_password = cgi.escape(reg_password)
 	#SQL block
 	if reg_name == "" or reg_email == "" or reg_password == "":
-<<<<<<< HEAD
 		return json.dumps({'status': 'error', 'error': 'Please, fill all fields!'})
 	else:
 		if not re.match(r"^[A-Za-z0-9\.\+_-]+@[A-Za-z0-9\._-]+\.[a-zA-Z]*$", reg_email):
 			return json.dumps({'status': 'error', 'error':'InValid Email!'})
 		else:
 			SQL_SELECT = "SELECT name, login from users WHERE name = %s OR login = %s;"
-=======
-		return json.dumps("Please fill all fields!")
-	else:
-		if not re.match(r"^[A-Za-z0-9\.\+_-]+@[A-Za-z0-9\._-]+\.[a-zA-Z]*$", reg_email):
-			return json.dumps("InValid Email!")
-		else:
-			SQL_SELECT = "SELECT name, login from users WHERE name = %s AND login = %s;"
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 			data_select = (str(reg_name), str(reg_email))	
 			cur.execute(SQL_SELECT, data_select)
 			users_db = cur.fetchall()
@@ -188,7 +164,6 @@ def reg(environ, start_response, cur):
 				SQL_INSERT = "INSERT INTO users (name, login, password) VALUES (%s, %s, %s);"
 				data_insert = (str(reg_name), str(reg_email), str(reg_password))
 				cur.execute(SQL_INSERT, data_insert)
-<<<<<<< HEAD
 				return json.dumps({'status': 'ok'})
 			else:
 				db_name = str(users_db[0][0])
@@ -198,16 +173,6 @@ def reg(environ, start_response, cur):
 					return json.dumps({'status': 'error', 'error':'Name already exists!'})
 				elif db_email == reg_email:
 					return json.dumps({'status': 'error', 'error':'Email already exists!'})
-=======
-				return json.dumps("Registration successfull!")
-			else:
-				db_name = str(users_db[0][0])
-				db_email = str(users_db[0][1])
-				if db_name == reg_name:
-					return json.dumps("Name already exists!")
-				elif db_email == reg_email:
-					return json.dumps("Email already exists!")
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 
 def check_auth(environ, start_response, cur):
 	global key
@@ -293,11 +258,7 @@ def article(environ, start_response, cur, uri, name):
 
 def add_article(environ, start_response, cur, name):
 	if name == "":
-<<<<<<< HEAD
 		return json.dumps({'status': 'error', 'error': 'unauthorized user!'})
-=======
-		return json.dumps("NONAME")
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 	else:	
 		#Form Parsing Block
 		try:
@@ -307,11 +268,7 @@ def add_article(environ, start_response, cur, name):
 		request_body = environ['wsgi.input'].read(request_body_size)
 		d = parse_qs(request_body)
 		if len(d) < 3:
-<<<<<<< HEAD
 			return json.dumps({'status': 'error', 'error': 'Please, fill all fields!'})
-=======
-			return json.dumps("Please fill all fields!")
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 		else:
 			article_author = name
 			article_date = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -323,19 +280,11 @@ def add_article(environ, start_response, cur, name):
 			SQL_INSERT = "INSERT INTO articles (article_author, article_title, article_text, article_date) VALUES (%s, %s, %s, %s);"
 			data_insert = (article_author, article_title, article_text, article_date)
 			cur.execute(SQL_INSERT, data_insert)
-<<<<<<< HEAD
 			return json.dumps({'status': 'ok'})
 
 def add_comment(environ, start_response, cur, name):
 	if name == "":
 		js_response = json.dumps({'status': 'error', 'error': 'unauthorized user!'})
-=======
-			return json.dumps("OK")
-
-def add_comment(environ, start_response, cur, name):
-	if name == "":
-		js_response = json.dumps("NONAME")
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 		return js_response
 	else:
 		#Form Parsing Block
@@ -353,9 +302,5 @@ def add_comment(environ, start_response, cur, name):
 		SQL_INSERT = "INSERT INTO comments (article_idc, comment_author, comment_text, comment_date) VALUES (%s, %s, %s, %s);"
 		data_insert = (article_idc, comment_author, comment_text, comment_date)
 		cur.execute(SQL_INSERT, data_insert)
-<<<<<<< HEAD
 		js_response = json.dumps({'status': 'ok', 'comment_author': comment_author, 'comment_date': comment_date})
-=======
-		js_response = json.dumps({'comment_author': comment_author, 'comment_date': comment_date})
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 		return js_response

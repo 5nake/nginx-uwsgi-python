@@ -9,9 +9,6 @@
     
 	<p style="padding-top:15px;">At least, input your password</p>
 	<input type="password" placeholder="Password" name="password" id="reg_password" required> 
-</div>
-<div class="container" style="padding-top:15px;">
-	<button type="button" class="btn btn-success">OK</button>
 =======
 	<input type="text" placeholder="Name" name="name" id="reg_name">
     
@@ -20,20 +17,16 @@
     
 	<p style="padding-top:15px;">At least, input your password</p>
 	<input type="password" placeholder="Password" name="password" id="reg_password"> 
+>>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 </div>
 <div class="container" style="padding-top:15px;">
 	<button type="submit" class="btn btn-success">OK</button>
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 </div>
 </form>
 
 <script>
 $(document).ready (function(){
-<<<<<<< HEAD
-	$('form').on('button', function() {
-=======
 	$('form').on('submit', function() {
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 		var reg_name = $("#reg_name").val();
 		var reg_email = $("#reg_email").val();
 		var reg_password = $("#reg_password").val();
@@ -45,15 +38,14 @@ $(document).ready (function(){
 					window.location.href = ("/")
 				} else {
 					alert(data.error)
-				}}, "json");
 =======
     			if (data === "Registration successfull!") {
 					alert("Registration successfull!")
 					window.location.href = ("/")
 				} else {
 					alert(data)
-				}} "json");
 >>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
+				}}, "json");
 	return false;
 	});
 });
