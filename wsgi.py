@@ -69,7 +69,7 @@ def application(environ, start_response):
 	elif uri == '/logout/':
 		output = logout(environ, start_response, cur)
 	elif re.match(r'/article/\d{1,4}$', uri):
-		article_response = article(environ, start_response, cur, uri, name)
+		article_response = article(environ, start_response, conn, uri, name)
 		if article_response['output'] == '404 Not Found':
 			output = base_page.render(myblock=page_404, name=name)
 			status="404 Not Found"
@@ -87,12 +87,15 @@ def application(environ, start_response):
 	elif re.match(r'/contacts/.*', uri):
 		with open('/home/user/myapp/templates/contacts.html', 'r') as f:
 			contacts_page = f.read()
-		output = base_page.render(myblock=contacts_page, name=name)	
+		output = base_page.render(myblock=contacts_page, name=name)
+	elif uri == '/showmore/comments/':
+		output = show_more_comments(environ, start_response, conn)
 	else:
 		output = base_page.render(myblock=page_404, name=name)
 		status="404 Not Found"
 	if cur is not None:
 		cur.close()
+	if conn is not None:
 		conn.close()
 	return response(environ, start_response, output, status, cookie, content_type)
 
@@ -231,10 +234,9 @@ def logout(environ, start_response, cur):
 		cur.execute("DELETE FROM sessions WHERE user_id = %s;", (user_id, ))
 		return "LOGOUT"
 
-def article(environ, start_response, cur, uri, name):
+def article(environ, start_response, conn, uri, name):
 	article_id = uri[9:]
-
-	conn = psycopg2.connect("dbname=mydb user=postgres password=G898Q8QArma")		
+	
 	dict_cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 	dict_cur.execute("SELECT * from articles WHERE article_id=%s;", (article_id, ))
 	article_db = dict_cur.fetchall()
@@ -249,9 +251,8 @@ def article(environ, start_response, cur, uri, name):
 		article_text = article_db['article_text']
 		article_date = article_db['article_date']
 
-		dict_cur.execute("SELECT * from comments WHERE article_idc=%s ORDER BY comment_id DESC;", (article_id, ))
+		dict_cur.execute("SELECT * from comments WHERE article_idc=%s ORDER BY comment_id DESC LIMIT 5;", (article_id, ))
 		comments_db = dict_cur.fetchall()
-		comments_db
 		article_content = article_template.render(article_title = article_title, article_text = article_text, article_date = article_date, article_author = article_author, name=name, comments = comments_db)
 
 		return {'output': article_content, 'status': '200 OK'}
@@ -304,3 +305,29 @@ def add_comment(environ, start_response, cur, name):
 		cur.execute(SQL_INSERT, data_insert)
 		js_response = json.dumps({'status': 'ok', 'comment_author': comment_author, 'comment_date': comment_date})
 		return js_response
+
+def show_more_comments(environ, start_response, conn):
+	try:
+		request_body_size = int(environ.get('CONTENT_LENGTH', 0))
+	except (ValueError):
+		request_body_size = 0
+	request_body = environ['wsgi.input'].read(request_body_size)
+	d = parse_qs(request_body)
+	article_idc = d['location'][0]
+	article_idc = article_idc[8:]
+	js_counter = int(d['counter'][0])
+
+	dict_cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+	dict_cur.execute("SELECT * from comments WHERE article_idc=%s ORDER BY comment_id DESC LIMIT 6 OFFSET %s;", (article_idc, js_counter))
+	dict_response = dict_cur.fetchall()
+	if dict_response == []:
+		js_response = json.dumps({'status': 'error', 'error': 'nothing to load'})
+	else:
+		for comment in dict_response:
+			comment['comment_date'] = str(comment['comment_date'])
+		if len(dict_response) == 5:
+			js_response = json.dumps({'status': 'ok', 'data': 'last_data', 'response': dict_response})
+		else:
+			dict_response = dict_response[:5]
+			js_response = json.dumps({'status': 'ok', 'response': dict_response})
+	return js_response
