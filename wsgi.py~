@@ -1,10 +1,8 @@
-from jinja2 import Template, Environment, FileSystemLoader
+from jinja2 import Template, Environment
 from cgi import parse_qs, escape
 from psycopg2 import extras
-from pprint import pprint
 import json
 import time
-import Cookie
 import cgi
 import re
 import random
@@ -39,11 +37,6 @@ def application(environ, start_response):
 		base_page = Template(f.read())
 	with open('/home/user/myapp/templates/404.html') as f:
 		page_404 = f.read()
-<<<<<<< HEAD
-=======
-	with open('/home/user/myapp/templates/test/test.html', 'r') as f:
-		article_id = int(f.read()) #TEMP for testing (id=2)
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 	
 	#URI BLOCK. Match (re.match()) objects are always True, and None if there's no match.
 	status = "200 OK"
@@ -51,13 +44,14 @@ def application(environ, start_response):
 	content_type = 'text/html'
 	print(uri)
 	if uri == "/":
-<<<<<<< HEAD
-		with open('/home/user/myapp/templates/p1.html', 'r') as f:
-=======
-		with open('/home/user/myapp/templates/test/p1.html', 'r') as f:
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
-			p1 = f.read()
-		output = base_page.render(myblock=p1, name=name)
+		output = base_page.render(myblock=main_page(environ, start_response, conn), name=name)
+	elif re.match(r'/[?]page=\d{1,3}$', uri):
+		fs = cgi.FieldStorage(fp=environ['wsgi.input'], environ=environ)
+		dfg = fs.getvalue('page')
+		print fs
+		d = parse_qs(environ['QUERY_STRING'])
+		page = int(d['page'][0])
+		output = base_page.render(myblock=main_page(environ, start_response, conn, page), name=name)
 	elif uri == '/reg/':
 		with open('/home/user/myapp/templates/reg.html', 'r') as f:
 			reg_page = f.read()
@@ -78,7 +72,7 @@ def application(environ, start_response):
 	elif uri == '/logout/':
 		output = logout(environ, start_response, cur)
 	elif re.match(r'/article/\d{1,4}$', uri):
-		article_response = article(environ, start_response, cur, uri, name)
+		article_response = article(environ, start_response, conn, uri, name)
 		if article_response['output'] == '404 Not Found':
 			output = base_page.render(myblock=page_404, name=name)
 			status="404 Not Found"
@@ -96,12 +90,15 @@ def application(environ, start_response):
 	elif re.match(r'/contacts/.*', uri):
 		with open('/home/user/myapp/templates/contacts.html', 'r') as f:
 			contacts_page = f.read()
-		output = base_page.render(myblock=contacts_page, name=name)	
+		output = base_page.render(myblock=contacts_page, name=name)
+	elif uri == '/showmore/comments/':
+		output = show_more_comments(environ, start_response, conn)
 	else:
 		output = base_page.render(myblock=page_404, name=name)
 		status="404 Not Found"
 	if cur is not None:
 		cur.close()
+	if conn is not None:
 		conn.close()
 	return response(environ, start_response, output, status, cookie, content_type)
 
@@ -137,15 +134,9 @@ def auth(environ, start_response, cur):
 		expires = time.time() + 30 * 24 * 3600
 		session_expires = time.strftime("%a, %d-%b-%Y, %T GMT", time.gmtime(expires))
 		session_cookie = "sessions=%s,%s; PATH=/; EXPIRES=%s"%(session_id, ident_id, session_expires)
-<<<<<<< HEAD
 		return {'output': {'status': 'ok'}, 'cookie': session_cookie}
 	else:
 		return {'output': {'status': 'error', 'error': 'WRONG USER DATA!'}, 'cookie': False}
-=======
-		return {'output': "INSERT SESSION DATA", 'cookie': session_cookie}
-	else:
-		return {'output': "WRONG USER DATA!!", 'cookie': False}
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 
 
 
@@ -166,21 +157,12 @@ def reg(environ, start_response, cur):
 	reg_password = cgi.escape(reg_password)
 	#SQL block
 	if reg_name == "" or reg_email == "" or reg_password == "":
-<<<<<<< HEAD
 		return json.dumps({'status': 'error', 'error': 'Please, fill all fields!'})
 	else:
 		if not re.match(r"^[A-Za-z0-9\.\+_-]+@[A-Za-z0-9\._-]+\.[a-zA-Z]*$", reg_email):
 			return json.dumps({'status': 'error', 'error':'InValid Email!'})
 		else:
 			SQL_SELECT = "SELECT name, login from users WHERE name = %s OR login = %s;"
-=======
-		return json.dumps("Please fill all fields!")
-	else:
-		if not re.match(r"^[A-Za-z0-9\.\+_-]+@[A-Za-z0-9\._-]+\.[a-zA-Z]*$", reg_email):
-			return json.dumps("InValid Email!")
-		else:
-			SQL_SELECT = "SELECT name, login from users WHERE name = %s AND login = %s;"
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 			data_select = (str(reg_name), str(reg_email))	
 			cur.execute(SQL_SELECT, data_select)
 			users_db = cur.fetchall()
@@ -188,7 +170,6 @@ def reg(environ, start_response, cur):
 				SQL_INSERT = "INSERT INTO users (name, login, password) VALUES (%s, %s, %s);"
 				data_insert = (str(reg_name), str(reg_email), str(reg_password))
 				cur.execute(SQL_INSERT, data_insert)
-<<<<<<< HEAD
 				return json.dumps({'status': 'ok'})
 			else:
 				db_name = str(users_db[0][0])
@@ -198,16 +179,6 @@ def reg(environ, start_response, cur):
 					return json.dumps({'status': 'error', 'error':'Name already exists!'})
 				elif db_email == reg_email:
 					return json.dumps({'status': 'error', 'error':'Email already exists!'})
-=======
-				return json.dumps("Registration successfull!")
-			else:
-				db_name = str(users_db[0][0])
-				db_email = str(users_db[0][1])
-				if db_name == reg_name:
-					return json.dumps("Name already exists!")
-				elif db_email == reg_email:
-					return json.dumps("Email already exists!")
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 
 def check_auth(environ, start_response, cur):
 	global key
@@ -266,10 +237,9 @@ def logout(environ, start_response, cur):
 		cur.execute("DELETE FROM sessions WHERE user_id = %s;", (user_id, ))
 		return "LOGOUT"
 
-def article(environ, start_response, cur, uri, name):
+def article(environ, start_response, conn, uri, name):
 	article_id = uri[9:]
-
-	conn = psycopg2.connect("dbname=mydb user=postgres password=G898Q8QArma")		
+	
 	dict_cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 	dict_cur.execute("SELECT * from articles WHERE article_id=%s;", (article_id, ))
 	article_db = dict_cur.fetchall()
@@ -284,20 +254,15 @@ def article(environ, start_response, cur, uri, name):
 		article_text = article_db['article_text']
 		article_date = article_db['article_date']
 
-		dict_cur.execute("SELECT * from comments WHERE article_idc=%s ORDER BY comment_id DESC;", (article_id, ))
+		dict_cur.execute("SELECT * from comments WHERE article_idc=%s ORDER BY comment_id DESC LIMIT 5;", (article_id, ))
 		comments_db = dict_cur.fetchall()
-		comments_db
 		article_content = article_template.render(article_title = article_title, article_text = article_text, article_date = article_date, article_author = article_author, name=name, comments = comments_db)
 
 		return {'output': article_content, 'status': '200 OK'}
 
 def add_article(environ, start_response, cur, name):
 	if name == "":
-<<<<<<< HEAD
 		return json.dumps({'status': 'error', 'error': 'unauthorized user!'})
-=======
-		return json.dumps("NONAME")
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 	else:	
 		#Form Parsing Block
 		try:
@@ -307,11 +272,7 @@ def add_article(environ, start_response, cur, name):
 		request_body = environ['wsgi.input'].read(request_body_size)
 		d = parse_qs(request_body)
 		if len(d) < 3:
-<<<<<<< HEAD
 			return json.dumps({'status': 'error', 'error': 'Please, fill all fields!'})
-=======
-			return json.dumps("Please fill all fields!")
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 		else:
 			article_author = name
 			article_date = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -323,19 +284,11 @@ def add_article(environ, start_response, cur, name):
 			SQL_INSERT = "INSERT INTO articles (article_author, article_title, article_text, article_date) VALUES (%s, %s, %s, %s);"
 			data_insert = (article_author, article_title, article_text, article_date)
 			cur.execute(SQL_INSERT, data_insert)
-<<<<<<< HEAD
 			return json.dumps({'status': 'ok'})
 
 def add_comment(environ, start_response, cur, name):
 	if name == "":
 		js_response = json.dumps({'status': 'error', 'error': 'unauthorized user!'})
-=======
-			return json.dumps("OK")
-
-def add_comment(environ, start_response, cur, name):
-	if name == "":
-		js_response = json.dumps("NONAME")
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 		return js_response
 	else:
 		#Form Parsing Block
@@ -353,9 +306,52 @@ def add_comment(environ, start_response, cur, name):
 		SQL_INSERT = "INSERT INTO comments (article_idc, comment_author, comment_text, comment_date) VALUES (%s, %s, %s, %s);"
 		data_insert = (article_idc, comment_author, comment_text, comment_date)
 		cur.execute(SQL_INSERT, data_insert)
-<<<<<<< HEAD
 		js_response = json.dumps({'status': 'ok', 'comment_author': comment_author, 'comment_date': comment_date})
-=======
-		js_response = json.dumps({'comment_author': comment_author, 'comment_date': comment_date})
->>>>>>> 47ca6c2b3855790012c5e75d7a2427f648e08aab
 		return js_response
+
+def show_more_comments(environ, start_response, conn):
+	try:
+		request_body_size = int(environ.get('CONTENT_LENGTH', 0))
+	except (ValueError):
+		request_body_size = 0
+	request_body = environ['wsgi.input'].read(request_body_size)
+	d = parse_qs(request_body)
+	article_idc = d['location'][0]
+	article_idc = article_idc[8:]
+	js_counter = int(d['counter'][0])
+
+	dict_cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+	dict_cur.execute("SELECT * from comments WHERE article_idc=%s ORDER BY comment_id DESC LIMIT 6 OFFSET %s;", (article_idc, js_counter))
+	dict_response = dict_cur.fetchall()
+	if dict_response == []:
+		js_response = json.dumps({'status': 'error', 'error': 'nothing to load'})
+	else:
+		for comment in dict_response:
+			comment['comment_date'] = str(comment['comment_date'])
+		if len(dict_response) == 5:
+			js_response = json.dumps({'status': 'ok', 'data': 'last_data', 'response': dict_response})
+		else:
+			dict_response = dict_response[:5]
+			js_response = json.dumps({'status': 'ok', 'response': dict_response})
+	return js_response
+
+def main_page(environ, start_response, conn, current_page=1):
+	dict_cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)	
+	dict_cur.execute("SELECT COUNT (*) FROM articles;")
+	articles_count = dict_cur.fetchone()
+	articles_count = articles_count['count']
+	article_numbers = (current_page * 5) - 5
+	print(articles_count)
+	if articles_count % 5 == 0:
+		articles_pages = articles_count / 5
+	else:
+		articles_pages = (articles_count // 5) + 1
+	pages = []
+	for i in range(1, articles_pages + 1):
+		pages.append(i)
+	dict_cur.execute("SELECT * from articles ORDER BY article_id DESC LIMIT 5 OFFSET %s;", (article_numbers, ))
+	dict_response = dict_cur.fetchall()
+	with open('/home/user/myapp/templates/main.html', 'r') as f:
+		main_template = Template(f.read())
+	main_content = main_template.render(articles = dict_response, pages = pages, current_page=current_page)
+	return main_content

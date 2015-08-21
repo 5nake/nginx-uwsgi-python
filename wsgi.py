@@ -1,10 +1,8 @@
-from jinja2 import Template, Environment, FileSystemLoader
+from jinja2 import Template, Environment
 from cgi import parse_qs, escape
 from psycopg2 import extras
-from pprint import pprint
 import json
 import time
-import Cookie
 import cgi
 import re
 import random
@@ -46,9 +44,11 @@ def application(environ, start_response):
 	content_type = 'text/html'
 	print(uri)
 	if uri == "/":
-		with open('/home/user/myapp/templates/p1.html', 'r') as f:
-			p1 = f.read()
-		output = base_page.render(myblock=p1, name=name)
+		output = base_page.render(myblock=main_page(environ, start_response, conn), name=name)
+	elif re.match(r'/[?]page=\d{1,3}$', uri):
+		d = parse_qs(environ['QUERY_STRING'])
+		page = int(d['page'][0])
+		output = base_page.render(myblock=main_page(environ, start_response, conn, page), name=name)
 	elif uri == '/reg/':
 		with open('/home/user/myapp/templates/reg.html', 'r') as f:
 			reg_page = f.read()
@@ -331,3 +331,24 @@ def show_more_comments(environ, start_response, conn):
 			dict_response = dict_response[:5]
 			js_response = json.dumps({'status': 'ok', 'response': dict_response})
 	return js_response
+
+def main_page(environ, start_response, conn, current_page=1):
+	dict_cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)	
+	dict_cur.execute("SELECT COUNT (*) FROM articles;")
+	articles_count = dict_cur.fetchone()
+	articles_count = articles_count['count']
+	article_numbers = (current_page * 5) - 5
+	print(articles_count)
+	if articles_count % 5 == 0:
+		articles_pages = articles_count / 5
+	else:
+		articles_pages = (articles_count // 5) + 1
+	pages = []
+	for i in range(1, articles_pages + 1):
+		pages.append(i)
+	dict_cur.execute("SELECT * from articles ORDER BY article_id DESC LIMIT 5 OFFSET %s;", (article_numbers, ))
+	dict_response = dict_cur.fetchall()
+	with open('/home/user/myapp/templates/main.html', 'r') as f:
+		main_template = Template(f.read())
+	main_content = main_template.render(articles = dict_response, pages = pages, current_page=current_page)
+	return main_content

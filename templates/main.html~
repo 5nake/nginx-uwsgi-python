@@ -1,0 +1,16 @@
+<h1 style="text-align:center">Welcome to the ORCHIDS MANIAC!</h1>
+
+{% for article in articles %}
+<a href="/article/{{ article['article_id'] }}">{{ article['article_title'] }}</a><br/>
+{{ article['article_text'] }}<br/>
+Author: {{ article['article_author'] }}<br/>
+{{ article['article_date'] }}<br/></br></hr>
+{% endfor %}
+
+{% for page in pages %}
+{% if page == current_page %}
+{{ page }}
+{% else %}
+<a href="/?page={{ page }}">{{ page }}</a>
+{% endif %}
+{% endfor %}
