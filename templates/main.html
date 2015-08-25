@@ -1,10 +1,13 @@
+{% if current_page == 1 %}
 <h1 style="text-align:center">Welcome to the ORCHIDS MANIAC!</h1>
+{% endif %}
 
 {% for article in articles %}
-<a href="/article/{{ article['article_id'] }}">{{ article['article_title'] }}</a><br/>
-{{ article['article_text'] }}<br/><br/>
+<h2><a href="/article/{{ article['article_id'] }}">{{ article['article_title'] }}</a></h2>
 Author: {{ article['article_author'] }}<br/>
-{{ article['article_date'] }}<br/></br><br/></hr>
+{{ article['article_date'] }}<br/>
+{{ article['article_text'] }}<br/>
+<a href="/article/{{ article['article_id'] }}">Read all...</a><br/></br><br/></hr>
 {% endfor %}
 
 {% for page in pages %}

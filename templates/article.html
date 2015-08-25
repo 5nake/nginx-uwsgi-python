@@ -19,16 +19,24 @@
 
 <hr>
 <div style="padding-top:20px;">
-Comments:
-<br/>
+<h4>Comments:</h4>
+</br>
 <div id='content'>
 {% for comment in comments %}
-{{ comment['comment_text'] }}<br/>
-{{ comment['comment_author'] }}
-{{ comment['comment_date'] }}<br/><br/>
+<form id="comment_form">
+<span>{{ comment['comment_text'] }}</span><br/>
+<span>{{ comment['comment_author'] }}</span>
+<span>{{ comment['comment_date'] }}</span><br/>
+<p id='comment_id' hidden>{{ comment['comment_id'] }}</p>
+{% if comment['comment_author'] == name %}
+<button type="submit" onclick="delete_comment()">Delete</button>
+{% endif %}
+</form>
+<br/><br/>
 {% endfor %}
 </div>
 </div>
+
 {% if comments|length > 4 %}
 <div id="show_more_comments" class="btn btn-primary">Show More</div>
 {% endif %}
@@ -51,7 +59,7 @@ $(document).ready(function(){
 					alert(data.error);
 					window.location.href = ("/")
 				} else if (data.status === "ok") {
-					s = parse('%s<br>%s %s<br><br>', comment_text, data.comment_author, data.comment_date);
+					s = parse('%s<br>%s %s<br><a href=#>Edit</a> <span style="padding-left:30px";><a href=# id="deletecomm">Delete</a></span><br/><br/>', comment_text, data.comment_author, data.comment_date);
 					var div = document.createElement('div');
 					div.innerHTML = s;
 					newParent = document.getElementById('content');
@@ -86,7 +94,7 @@ $(document).ready(function(){
 					if (data.response.length < 5) {
 						button.parentNode.removeChild(button)
 					}; for (var i=0; i<data.response.length; i++) {
-					s = parse('%s<br>%s %s<br><br>', data.response[i].comment_text, data.response[i].comment_author, data.response[i].comment_date);
+					s = parse('%s<br>%s %s<br><a href=#>Edit</a> <span style="padding-left:30px";><a href=# id="deletecomm">Delete</a></span><br/><br/>', data.response[i].comment_text, data.response[i].comment_author, data.response[i].comment_date);
 					var div = document.createElement('div');
 					div.innerHTML = s;
 					newParent = document.getElementById('content');
@@ -97,4 +105,13 @@ $(document).ready(function(){
 });
 </script>
 
-
+<script>
+function delete_comment() {
+	$('form#comment_form').on('submit', function() {
+		replace_elem = "<p style='color:red; font-style:italic'>Comment deleted!</p>"
+		$(this).replaceWith(replace_elem);
+		var comment_id = this.getElementsByTagName("p")[0].innerHTML;	
+		$.post("/delete/comment/", {'comment_id': comment_id});
+	});
+};
+</script>

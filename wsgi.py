@@ -90,12 +90,13 @@ def application(environ, start_response):
 		output = base_page.render(myblock=contacts_page, name=name)
 	elif uri == '/showmore/comments/':
 		output = show_more_comments(environ, start_response, conn)
+	elif uri == '/delete/comment/':
+		output = delete_comment(environ, start_response, cur)
 	else:
 		output = base_page.render(myblock=page_404, name=name)
 		status="404 Not Found"
 	if cur is not None:
 		cur.close()
-	if conn is not None:
 		conn.close()
 	return response(environ, start_response, output, status, cookie, content_type)
 
@@ -240,12 +241,12 @@ def article(environ, start_response, conn, uri, name):
 	dict_cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 	dict_cur.execute("SELECT * from articles WHERE article_id=%s;", (article_id, ))
 	article_db = dict_cur.fetchall()
-	article_db = article_db[0]
 	if article_db == []:
 		return {'output': '404 Not Found', 'status': "404 Not Found"}
 	else:
 		with open('/home/user/myapp/templates/article.html', 'r') as f:
 			article_template = Template(f.read())
+		article_db = article_db[0]
 		article_author = article_db['article_author']	
 		article_title = article_db['article_title']
 		article_text = article_db['article_text']
@@ -350,5 +351,19 @@ def main_page(environ, start_response, conn, current_page=1):
 	dict_response = dict_cur.fetchall()
 	with open('/home/user/myapp/templates/main.html', 'r') as f:
 		main_template = Template(f.read())
+	print(dict_response)
+	for text in dict_response:
+		text['article_text'] = text['article_text'][:400] + '...'
 	main_content = main_template.render(articles = dict_response, pages = pages, current_page=current_page)
 	return main_content
+
+def delete_comment(environ, start_response, cur):
+	try:
+		request_body_size = int(environ.get('CONTENT_LENGTH', 0))
+	except (ValueError):
+		request_body_size = 0
+	request_body = environ['wsgi.input'].read(request_body_size)
+	d = parse_qs(request_body)
+	comment_id = d['comment_id'][0]
+	cur.execute("DELETE FROM comments * WHERE comment_id = %s;", (comment_id, ))
+	return "ok"
