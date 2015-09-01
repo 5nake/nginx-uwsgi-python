@@ -1,4 +1,4 @@
-{% if current_page == 0 %}
+{% if current_page == 1 %}
 <h1 style="text-align:center">Welcome to the ORCHIDS MANIAC!</h1>
 {% endif %}
 

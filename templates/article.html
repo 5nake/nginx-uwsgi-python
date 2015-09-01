@@ -1,7 +1,6 @@
-
 <h1>{{ article_title }}</h1>
 <div>
-{{ article_text }}
+{{ article_text|safe }}
 </div>
 <div>Date: {{ article_date }}</div>
 <div>Author: {{ article_author }}</div>
@@ -12,7 +11,6 @@
 <div class="form-group" style="padding-top:18px;">
     <textarea type="text" id = "comment_input" class="form-control status-box-text" rows="2" placeholder="What's on your mind?" required></textarea>
 </div>
-
 <button type="submit" id="addcomment" class="btn btn-success">Post</button>
 </form>
 {% endif %}
@@ -59,7 +57,7 @@ $(document).ready(function(){
 					alert(data.error);
 					window.location.href = ("/")
 				} else if (data.status === "ok") {
-					s = parse('%s<br>%s %s<br><a href=#>Edit</a> <span style="padding-left:30px";><a href=# id="deletecomm">Delete</a></span><br/><br/>', comment_text, data.comment_author, data.comment_date);
+					s = parse('%s<br>%s %s<br><a href=#>Edit</a> <span style="padding-left:30px";><a href=# id="deletecomm">Delete</a></span><br/><br/>', data.comment_text, data.comment_author, data.comment_date);
 					var div = document.createElement('div');
 					div.innerHTML = s;
 					newParent = document.getElementById('content');

@@ -13,6 +13,7 @@
     <link href="/css/styles.css" rel="stylesheet">
 	<script src="/js/jquery.min.js"></script>
     <script src="/js/bootstrap.min.js"></script>
+	<script src="/js/ckeditor/ckeditor.js"></script>
   </head>
 
   <body>
@@ -87,7 +88,7 @@
    
     <div class="container">
       <div class="myblock">
-		{{ myblock }}
+		{{ myblock|safe }}
 		
 	  </div>    
 	

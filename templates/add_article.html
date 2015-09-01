@@ -1,18 +1,36 @@
-<form>
+<form id="article_form" autocomplete="off">
 <div class="contacts form-group">
-    <textarea type="text" id = "article_title" class="form-control status-box-title" rows="1" placeholder="Article Title" required></textarea>
+    <textarea type="text" id = "article_title" name = "article_title" class="form-control status-box-title" rows="1" placeholder="Article Title" required></textarea>
 </div>
 <div class="form-group">
-    <textarea type="text" id = "article_text" class="form-control status-box-text" rows="20" placeholder="Content" required></textarea>
+    <textarea type="text" id = "article_text" name = "article_text" class="article_title form-control status-box-text" rows="20" placeholder="Content" required></textarea>
 </div>
 
 <button type="submit" class="btn btn-success">Post</button>
-
 </form>
+
+<script type="text/javascript">
+$(document).ready(function(){
+	CKEDITOR.replace( 'article_text' );
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){
+	window.onload = function()
+	{
+		CKEDITOR.replace( 'article_text' );
+	};
+});
+</script>
+
 
 <script>
 $(document).ready(function(){
-	$('form').on('submit', function() {
+	$('form#article_form').on('submit', function() {
+		for (var i in CKEDITOR.instances) {
+        CKEDITOR.instances[i].updateElement();
+    	};
 		var article_title = $("#article_title").val();
 		var article_text = $("#article_text").val();
 		
@@ -47,7 +65,7 @@ $(document).ready(function(){
 			} else {
 				alert(data.error)
 			}}, "json");
-	return false;
+		return false;
 	});
 });
 </script>

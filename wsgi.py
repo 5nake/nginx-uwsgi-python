@@ -1,9 +1,11 @@
 from jinja2 import Template, Environment
-from cgi import parse_qs, escape
+from cgi import parse_qs, parse_multipart, escape
 from psycopg2 import extras
+import cgitb; cgitb.enable()
 import json
 import time
 import cgi
+import os
 import re
 import random
 import string
@@ -92,6 +94,10 @@ def application(environ, start_response):
 		output = show_more_comments(environ, start_response, conn)
 	elif uri == '/delete/comment/':
 		output = delete_comment(environ, start_response, cur)
+	elif uri == '/add/image/add/':
+		output = add_image(environ, start_response, cur)
+	elif re.match(r'/file/upload/.*', uri):
+		output = add_image(environ, start_response, cur)
 	else:
 		output = base_page.render(myblock=page_404, name=name)
 		status="404 Not Found"
@@ -251,11 +257,10 @@ def article(environ, start_response, conn, uri, name):
 		article_title = article_db['article_title']
 		article_text = article_db['article_text']
 		article_date = article_db['article_date']
-
 		dict_cur.execute("SELECT * from comments WHERE article_idc=%s ORDER BY comment_id DESC LIMIT 5;", (article_id, ))
 		comments_db = dict_cur.fetchall()
 		article_content = article_template.render(article_title = article_title, article_text = article_text, article_date = article_date, article_author = article_author, name=name, comments = comments_db)
-
+		print(article_text)
 		return {'output': article_content, 'status': '200 OK'}
 
 def add_article(environ, start_response, cur, name):
@@ -269,6 +274,7 @@ def add_article(environ, start_response, cur, name):
 			request_body_size = 0
 		request_body = environ['wsgi.input'].read(request_body_size)
 		d = parse_qs(request_body)
+		print(d)
 		if len(d) < 3:
 			return json.dumps({'status': 'error', 'error': 'Please, fill all fields!'})
 		else:
@@ -278,7 +284,15 @@ def add_article(environ, start_response, cur, name):
 			article_title = d['article_title'][0]
 			article_title = cgi.escape(article_title)
 			article_text = d['article_text'][0]
-			article_text = cgi.escape(article_text)
+			print(request_body)
+			print(d)
+			non_escape_list = ['<p>', '</p>', '<img', '/>', '<strong>', '</strong>', '<em>', '</em>', '<s>', '</s>', '<ol>', '<li>', '</li>', '</ol>', '<ul>', '</ul>',  '<blockquote>', '</blockquote>', '<h1>', '</h1>', '<h2>', '</h2>', '<h3>', '</h3>', '<pre>', '</pre>']
+			#for i in range (0, len(non_escape_list)):
+			#	print(non_escape_list[i])
+			#	if not re.match(r"%s"%non_escape_list[i], article_text):
+			#		pass
+				#else:
+					#non_escape_list[i] = cgi.escape(non_escape_list[i])
 			SQL_INSERT = "INSERT INTO articles (article_author, article_title, article_text, article_date) VALUES (%s, %s, %s, %s);"
 			data_insert = (article_author, article_title, article_text, article_date)
 			cur.execute(SQL_INSERT, data_insert)
@@ -300,11 +314,12 @@ def add_comment(environ, start_response, cur, name):
 		article_idc = article_idc[8:]
 		comment_author = name
 		comment_text = d['comment_text'][0]
+		comment_text = cgi.escape(comment_text)
 		comment_date = time.strftime("%Y-%m-%d %H:%M:%S")
 		SQL_INSERT = "INSERT INTO comments (article_idc, comment_author, comment_text, comment_date) VALUES (%s, %s, %s, %s);"
 		data_insert = (article_idc, comment_author, comment_text, comment_date)
 		cur.execute(SQL_INSERT, data_insert)
-		js_response = json.dumps({'status': 'ok', 'comment_author': comment_author, 'comment_date': comment_date})
+		js_response = json.dumps({'status': 'ok', 'comment_author': comment_author, 'comment_text': comment_text, 'comment_date': comment_date})
 		return js_response
 
 def show_more_comments(environ, start_response, conn):
@@ -339,7 +354,6 @@ def main_page(environ, start_response, conn, current_page=1):
 	articles_count = dict_cur.fetchone()
 	articles_count = articles_count['count']
 	article_numbers = (current_page * 5) - 5
-	print(articles_count)
 	if articles_count % 5 == 0:
 		articles_pages = articles_count / 5
 	else:
@@ -351,7 +365,6 @@ def main_page(environ, start_response, conn, current_page=1):
 	dict_response = dict_cur.fetchall()
 	with open('/home/user/myapp/templates/main.html', 'r') as f:
 		main_template = Template(f.read())
-	print(dict_response)
 	for text in dict_response:
 		text['article_text'] = text['article_text'][:400] + '...'
 	main_content = main_template.render(articles = dict_response, pages = pages, current_page=current_page)
@@ -367,3 +380,18 @@ def delete_comment(environ, start_response, cur):
 	comment_id = d['comment_id'][0]
 	cur.execute("DELETE FROM comments * WHERE comment_id = %s;", (comment_id, ))
 	return "ok"
+
+def add_image(environ, start_response, cur):
+	cur.execute("INSERT INTO images VALUES(DEFAULT);")
+	cur.execute("SELECT img_id FROM images ORDER BY img_id DESC LIMIT 1;")
+	image_id = cur.fetchone()
+
+	fs = cgi.FieldStorage(fp=environ['wsgi.input'],environ=environ)
+	callback = fs['CKEditorFuncNum'].value
+	http_path = "/img/img%s.jpg"%image_id
+	image = fs['upload'].file
+	save_image = bytearray(image.read())
+	file = open("/home/user/myapp/static/img/img%s.jpg"%image_id, "wb")
+	file.write(save_image)
+	file.close()
+	return "<script>window.parent.CKEDITOR.tools.callFunction(%s, '%s');</script>"%(callback, http_path)

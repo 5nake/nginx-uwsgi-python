@@ -6,7 +6,7 @@
 <h2><a href="/article/{{ article['article_id'] }}">{{ article['article_title'] }}</a></h2>
 Author: {{ article['article_author'] }}<br/>
 {{ article['article_date'] }}<br/>
-{{ article['article_text'] }}<br/>
+{{ article['article_text']|safe }}<br/>
 <a href="/article/{{ article['article_id'] }}">Read all...</a><br/></br><br/></hr>
 {% endfor %}
 
