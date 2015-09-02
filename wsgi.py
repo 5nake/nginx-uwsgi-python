@@ -1,7 +1,7 @@
-from jinja2 import Template, Environment
-from cgi import parse_qs, parse_multipart, escape
+from jinja2 import Template
+from cgi import parse_qs, escape
 from psycopg2 import extras
-import cgitb; cgitb.enable()
+#import cgitb; cgitb.enable()
 import json
 import time
 import cgi
@@ -114,10 +114,7 @@ def auth(environ, start_response, cur):
 	ident_id = md5.new(client_agent).hexdigest()
 	ident = psycopg2.Binary(ident_id)
 	#Parsing Block
-	try:
-		request_body_size = int(environ.get('CONTENT_LENGTH', 0))
-	except (ValueError):
-		request_body_size = 0
+	request_body_size = int(environ.get('CONTENT_LENGTH', 0))
 	request_body = environ['wsgi.input'].read(request_body_size)
 	d = parse_qs(request_body)
 	email = d.get('email', [''])[0]
@@ -146,19 +143,16 @@ def auth(environ, start_response, cur):
 
 def reg(environ, start_response, cur):
 	#Form Parsing Block
-	try:
-		request_body_size = int(environ.get('CONTENT_LENGTH', 0))
-	except (ValueError):
-		request_body_size = 0
+	request_body_size = int(environ.get('CONTENT_LENGTH', 0))
 	request_body = environ['wsgi.input'].read(request_body_size)
 	d = parse_qs(request_body)
 	
 	reg_name = d.get('reg_name', [''])[0]
 	reg_email = d.get('reg_email', [''])[0]
 	reg_password = d.get('reg_password', [''])[0]
-	reg_name = cgi.escape(reg_name)	
-	reg_email = cgi.escape(reg_email)
-	reg_password = cgi.escape(reg_password)
+	reg_name = escape(reg_name)	
+	reg_email = escape(reg_email)
+	reg_password = escape(reg_password)
 	#SQL block
 	if reg_name == "" or reg_email == "" or reg_password == "":
 		return json.dumps({'status': 'error', 'error': 'Please, fill all fields!'})
@@ -243,7 +237,6 @@ def logout(environ, start_response, cur):
 
 def article(environ, start_response, conn, uri, name):
 	article_id = uri[9:]
-	
 	dict_cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 	dict_cur.execute("SELECT * from articles WHERE article_id=%s;", (article_id, ))
 	article_db = dict_cur.fetchall()
@@ -256,11 +249,11 @@ def article(environ, start_response, conn, uri, name):
 		article_author = article_db['article_author']	
 		article_title = article_db['article_title']
 		article_text = article_db['article_text']
+		article_text = escape_article_text(article_text) # def escape_article_text(text)
 		article_date = article_db['article_date']
 		dict_cur.execute("SELECT * from comments WHERE article_idc=%s ORDER BY comment_id DESC LIMIT 5;", (article_id, ))
 		comments_db = dict_cur.fetchall()
 		article_content = article_template.render(article_title = article_title, article_text = article_text, article_date = article_date, article_author = article_author, name=name, comments = comments_db)
-		print(article_text)
 		return {'output': article_content, 'status': '200 OK'}
 
 def add_article(environ, start_response, cur, name):
@@ -268,10 +261,7 @@ def add_article(environ, start_response, cur, name):
 		return json.dumps({'status': 'error', 'error': 'unauthorized user!'})
 	else:	
 		#Form Parsing Block
-		try:
-			request_body_size = int(environ.get('CONTENT_LENGTH', 0))
-		except (ValueError):
-			request_body_size = 0
+		request_body_size = int(environ.get('CONTENT_LENGTH', 0))
 		request_body = environ['wsgi.input'].read(request_body_size)
 		d = parse_qs(request_body)
 		print(d)
@@ -284,15 +274,6 @@ def add_article(environ, start_response, cur, name):
 			article_title = d['article_title'][0]
 			article_title = cgi.escape(article_title)
 			article_text = d['article_text'][0]
-			print(request_body)
-			print(d)
-			non_escape_list = ['<p>', '</p>', '<img', '/>', '<strong>', '</strong>', '<em>', '</em>', '<s>', '</s>', '<ol>', '<li>', '</li>', '</ol>', '<ul>', '</ul>',  '<blockquote>', '</blockquote>', '<h1>', '</h1>', '<h2>', '</h2>', '<h3>', '</h3>', '<pre>', '</pre>']
-			#for i in range (0, len(non_escape_list)):
-			#	print(non_escape_list[i])
-			#	if not re.match(r"%s"%non_escape_list[i], article_text):
-			#		pass
-				#else:
-					#non_escape_list[i] = cgi.escape(non_escape_list[i])
 			SQL_INSERT = "INSERT INTO articles (article_author, article_title, article_text, article_date) VALUES (%s, %s, %s, %s);"
 			data_insert = (article_author, article_title, article_text, article_date)
 			cur.execute(SQL_INSERT, data_insert)
@@ -304,10 +285,7 @@ def add_comment(environ, start_response, cur, name):
 		return js_response
 	else:
 		#Form Parsing Block
-		try:
-			request_body_size = int(environ.get('CONTENT_LENGTH', 0))
-		except (ValueError):
-			request_body_size = 0
+		request_body_size = int(environ.get('CONTENT_LENGTH', 0))
 		request_body = environ['wsgi.input'].read(request_body_size)
 		d = parse_qs(request_body)
 		article_idc = d['location'][0]
@@ -323,10 +301,7 @@ def add_comment(environ, start_response, cur, name):
 		return js_response
 
 def show_more_comments(environ, start_response, conn):
-	try:
-		request_body_size = int(environ.get('CONTENT_LENGTH', 0))
-	except (ValueError):
-		request_body_size = 0
+	request_body_size = int(environ.get('CONTENT_LENGTH', 0))
 	request_body = environ['wsgi.input'].read(request_body_size)
 	d = parse_qs(request_body)
 	article_idc = d['location'][0]
@@ -366,15 +341,12 @@ def main_page(environ, start_response, conn, current_page=1):
 	with open('/home/user/myapp/templates/main.html', 'r') as f:
 		main_template = Template(f.read())
 	for text in dict_response:
-		text['article_text'] = text['article_text'][:400] + '...'
+		text['article_text'] = escape_article_text(text['article_text'][:400] + '...') # def escape_article_text(text)
 	main_content = main_template.render(articles = dict_response, pages = pages, current_page=current_page)
 	return main_content
 
 def delete_comment(environ, start_response, cur):
-	try:
-		request_body_size = int(environ.get('CONTENT_LENGTH', 0))
-	except (ValueError):
-		request_body_size = 0
+	request_body_size = int(environ.get('CONTENT_LENGTH', 0))
 	request_body = environ['wsgi.input'].read(request_body_size)
 	d = parse_qs(request_body)
 	comment_id = d['comment_id'][0]
@@ -395,3 +367,9 @@ def add_image(environ, start_response, cur):
 	file.write(save_image)
 	file.close()
 	return "<script>window.parent.CKEDITOR.tools.callFunction(%s, '%s');</script>"%(callback, http_path)
+
+def escape_article_text(text):
+	ban_tags = re.findall(r'\<(?:script|html|iframe|a).*?\<\/(?:script|html|iframe|a)(?:\>|\s+[^>]*\>)', text) + re.findall(r'\<\/(?:script|html|div|form|body)(?:\>|\s+[^>]*\>)', text) + re.findall(r'onclick/i', text) # onclick unfinished
+	for ban_tag in ban_tags:
+		text = text.replace(ban_tag, '<span style="color:red; font-style:italic;">PROHIBITED TAG</span>')
+	return text
