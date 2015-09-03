@@ -50,7 +50,12 @@ def application(environ, start_response):
 	elif re.match(r'/[?]page=\d{1,3}$', uri):
 		d = parse_qs(environ['QUERY_STRING'])
 		page = int(d['page'][0])
-		output = base_page.render(myblock=main_page(environ, start_response, conn, page), name=name)
+		out = main_page(environ, start_response, conn, page)
+		if out == "error":
+			output = base_page.render(myblock=page_404, name=name)
+			status="404 Not Found"
+		else:
+			output = base_page.render(myblock=main_page(environ, start_response, conn, page), name=name)
 	elif uri == '/reg/':
 		with open('/home/user/myapp/templates/reg.html', 'r') as f:
 			reg_page = f.read()
@@ -91,7 +96,7 @@ def application(environ, start_response):
 			contacts_page = f.read()
 		output = base_page.render(myblock=contacts_page, name=name)
 	elif uri == '/showmore/comments/':
-		output = show_more_comments(environ, start_response, conn)
+		output = show_more_comments(environ, start_response, conn, name)
 	elif uri == '/delete/comment/':
 		output = delete_comment(environ, start_response, cur)
 	elif uri == '/add/image/add/':
@@ -251,7 +256,7 @@ def article(environ, start_response, conn, uri, name):
 		article_text = article_db['article_text']
 		article_text = escape_article_text(article_text) # def escape_article_text(text)
 		article_date = article_db['article_date']
-		dict_cur.execute("SELECT * from comments WHERE article_idc=%s ORDER BY comment_id DESC LIMIT 5;", (article_id, ))
+		dict_cur.execute("SELECT COUNT (*) OVER (), * from comments WHERE article_idc=%s ORDER BY comment_id DESC LIMIT 5;", (article_id, ))
 		comments_db = dict_cur.fetchall()
 		article_content = article_template.render(article_title = article_title, article_text = article_text, article_date = article_date, article_author = article_author, name=name, comments = comments_db)
 		return {'output': article_content, 'status': '200 OK'}
@@ -297,10 +302,15 @@ def add_comment(environ, start_response, cur, name):
 		SQL_INSERT = "INSERT INTO comments (article_idc, comment_author, comment_text, comment_date) VALUES (%s, %s, %s, %s);"
 		data_insert = (article_idc, comment_author, comment_text, comment_date)
 		cur.execute(SQL_INSERT, data_insert)
-		js_response = json.dumps({'status': 'ok', 'comment_author': comment_author, 'comment_text': comment_text, 'comment_date': comment_date})
+		cur.execute("SELECT COUNT (*) OVER (), comment_id FROM comments WHERE article_idc=%s ORDER BY comment_id DESC LIMIT 1;"%article_idc)
+		comment_idandcount = cur.fetchall()
+		comments_count = comment_idandcount[0][0]
+		comment_id = comment_idandcount[0][1]
+		print(comment_idandcount)
+		js_response = json.dumps({'status': 'ok', 'comment_author': comment_author, 'comment_text': comment_text, 'comment_date': comment_date, 'comment_id': comment_id, 'comments_count': comments_count})
 		return js_response
 
-def show_more_comments(environ, start_response, conn):
+def show_more_comments(environ, start_response, conn, name):
 	request_body_size = int(environ.get('CONTENT_LENGTH', 0))
 	request_body = environ['wsgi.input'].read(request_body_size)
 	d = parse_qs(request_body)
@@ -317,10 +327,12 @@ def show_more_comments(environ, start_response, conn):
 		for comment in dict_response:
 			comment['comment_date'] = str(comment['comment_date'])
 		if len(dict_response) == 5:
-			js_response = json.dumps({'status': 'ok', 'data': 'last_data', 'response': dict_response})
+			print(dict_response)
+			js_response = json.dumps({'status': 'ok', 'data': 'last_data', 'response': dict_response, 'username': name})
 		else:
 			dict_response = dict_response[:5]
-			js_response = json.dumps({'status': 'ok', 'response': dict_response})
+			print(dict_response)
+			js_response = json.dumps({'status': 'ok', 'response': dict_response, 'username': name})
 	return js_response
 
 def main_page(environ, start_response, conn, current_page=1):
@@ -338,20 +350,32 @@ def main_page(environ, start_response, conn, current_page=1):
 		pages.append(i)
 	dict_cur.execute("SELECT * from articles ORDER BY article_id DESC LIMIT 5 OFFSET %s;", (article_numbers, ))
 	dict_response = dict_cur.fetchall()
-	with open('/home/user/myapp/templates/main.html', 'r') as f:
-		main_template = Template(f.read())
-	for text in dict_response:
-		text['article_text'] = escape_article_text(text['article_text'][:400] + '...') # def escape_article_text(text)
-	main_content = main_template.render(articles = dict_response, pages = pages, current_page=current_page)
-	return main_content
+	if dict_response == []:
+		return "error"
+	else:
+		with open('/home/user/myapp/templates/main.html', 'r') as f:
+			main_template = Template(f.read())
+		for text in dict_response:
+			text['article_text'] = escape_article_text(text['article_text']) # def escape_article_text(text)
+			if len(text['article_text']) > 400:
+				text['article_text'] = text['article_text'][:400] + '...'
+		main_content = main_template.render(articles = dict_response, pages = pages, current_page=current_page)
+		print(main_content)
+		return main_content
 
 def delete_comment(environ, start_response, cur):
 	request_body_size = int(environ.get('CONTENT_LENGTH', 0))
 	request_body = environ['wsgi.input'].read(request_body_size)
 	d = parse_qs(request_body)
+	article_idc = d['location'][0]
+	article_idc = article_idc[8:]
 	comment_id = d['comment_id'][0]
 	cur.execute("DELETE FROM comments * WHERE comment_id = %s;", (comment_id, ))
-	return "ok"
+	cur.execute("SELECT COUNT (*) FROM comments WHERE article_idc=%s;", (article_idc, ))
+	comments_count = cur.fetchone()
+	comments_count = comments_count[0]
+	print(comments_count)
+	return json.dumps({'status': 'ok', 'comments_count': comments_count})
 
 def add_image(environ, start_response, cur):
 	cur.execute("INSERT INTO images VALUES(DEFAULT);")
@@ -369,7 +393,7 @@ def add_image(environ, start_response, cur):
 	return "<script>window.parent.CKEDITOR.tools.callFunction(%s, '%s');</script>"%(callback, http_path)
 
 def escape_article_text(text):
-	ban_tags = re.findall(r'\<(?:script|html|iframe|a).*?\<\/(?:script|html|iframe|a)(?:\>|\s+[^>]*\>)', text) + re.findall(r'\<\/(?:script|html|div|form|body)(?:\>|\s+[^>]*\>)', text) + re.findall(r'onclick/i', text) # onclick unfinished
+	ban_tags = re.findall(r'\<(?:script|html|iframe|a).*\<\/(?:script|html|iframe|a)(?:\s+[^>]*)?\>', text) + re.findall(r'\<(?:script|html|iframe|a).*', text) + re.findall(r'\<\/(?:script|html|div|form|body)(?:\s+[^>]*)?\>', text) + re.findall(r'onclick', text, re.IGNORECASE)
 	for ban_tag in ban_tags:
 		text = text.replace(ban_tag, '<span style="color:red; font-style:italic;">PROHIBITED TAG</span>')
 	return text

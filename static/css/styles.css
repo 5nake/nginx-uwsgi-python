@@ -9,14 +9,24 @@ body {
 }
 
 .cover-404 {
-	padding-top:300px;
-	padding-bottom:300px;
+	padding-top:250px;
+	padding-bottom:250px;
 	background-color:#f7f7f7;
 	text-align:center;
 }
 
-.contacts {
+.myblock {
 	padding-top:50px;
 	font-size:16px;
+}
+
+.comment_del_button {
+	background:none;
+	border:none;
+	margin:0;
+	padding:0;
+	font-size:12px;
+	font-style:italic;
+	color: #7a7272;
 }
 

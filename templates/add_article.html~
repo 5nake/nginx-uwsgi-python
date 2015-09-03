@@ -1,5 +1,5 @@
 <form id="article_form" autocomplete="off">
-<div class="contacts form-group">
+<div class="myblock form-group">
     <textarea type="text" id = "article_title" name = "article_title" class="form-control status-box-title" rows="1" placeholder="Article Title" required></textarea>
 </div>
 <div class="form-group">
@@ -28,9 +28,11 @@ $(document).ready(function(){
 <script>
 $(document).ready(function(){
 	$('form#article_form').on('submit', function() {
+		for (var i in CKEDITOR.instances) {
+        CKEDITOR.instances[i].updateElement();
+    	};
 		var article_title = $("#article_title").val();
-		//var article_text = $("#article_text").val();
-		var article_text = CKEDITOR.instances.yourInstance.getData();
+		var article_text = $("#article_text").val();
 		
 		var today = new Date();
 		var dd = today.getDate();

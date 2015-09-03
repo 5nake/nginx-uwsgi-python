@@ -33,7 +33,7 @@
 			<div id="navbar" class="navbar-collapse collapse">
 				<div class="navbar-form navbar-right" method="POST">
 					<div class="form-group" style="color:#9D9D9D; font-size:18px;">
-            			<div style="padding-right:12px;"> Logged: {{ name }}    </div>
+            			<div style="padding-right:12px;"> Logged: {{ name }}  </div>
 					</div>
 						<a href="/add/article/" class="btn btn-success">Create Article</a>
 						<div id="logout" type="submit" class="btn btn-success">   Logout   </div>
@@ -54,10 +54,10 @@
 			<div id="navbar" class="navbar-collapse collapse">
 				<form id="first_form" class="navbar-form navbar-right" method="POST">
 				<div class="form-group">
-					<input type="email" placeholder="Email" class="form-control" name="email" id="email" required>
+					<input type="email" size=12 placeholder="Email" class="form-control" name="email" id="email" required>
         		</div>
         		<div class="form-group">
-           			<input type="password" placeholder="Password" class="form-control" name="password" id="password" required> 
+           			<input type="password" size=12 placeholder="Password" class="form-control" name="password" id="password" required> 
         		</div>
             		<button type="submit" class="btn btn-success">Log in</button>
 					<a href="/reg/" class="btn btn-success">Sign In</a>
@@ -87,10 +87,7 @@
 
    
     <div class="container">
-      <div class="myblock">
-		{{ myblock|safe }}
-		
-	  </div>    
+		{{ myblock|safe }}  
 	
       <hr>
       <footer>
