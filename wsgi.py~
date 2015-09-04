@@ -1,7 +1,9 @@
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
 from jinja2 import Template
 from cgi import parse_qs, escape
 from psycopg2 import extras
-#import cgitb; cgitb.enable()
+import codecs
 import json
 import time
 import cgi
@@ -35,9 +37,9 @@ def application(environ, start_response):
 
 	name = check_auth(environ, start_response, cur) #Check auth
 	uri = environ['REQUEST_URI']
-	with open('/home/user/myapp/templates/base.html', 'r') as f:
+	with codecs.open('/home/user/myapp/templates/base.html', 'r', encoding='utf-8') as f:
 		base_page = Template(f.read())
-	with open('/home/user/myapp/templates/404.html') as f:
+	with codecs.open('/home/user/myapp/templates/404.html', 'r', encoding='utf-8') as f:
 		page_404 = f.read()
 	
 	#URI BLOCK. Match (re.match()) objects are always True, and None if there's no match.
@@ -57,7 +59,7 @@ def application(environ, start_response):
 		else:
 			output = base_page.render(myblock=main_page(environ, start_response, conn, page), name=name)
 	elif uri == '/reg/':
-		with open('/home/user/myapp/templates/reg.html', 'r') as f:
+		with codecs.open('/home/user/myapp/templates/reg.html', 'r', encoding='utf-8') as f:
 			reg_page = f.read()
 		output = base_page.render(myblock=reg_page, name=name)
 	elif uri == '/reg/reg/':
@@ -83,7 +85,7 @@ def application(environ, start_response):
 		else:
 			output = base_page.render(myblock=article_response['output'], name=name)
 	elif uri == '/add/article/':
-		with open('/home/user/myapp/templates/add_article.html', 'r') as f:
+		with codecs.open('/home/user/myapp/templates/add_article.html', 'r', encoding='utf-8') as f:
 			add_article_page = f.read()
 		output = base_page.render(myblock=add_article_page, name=name)
 	elif uri == '/add/article/add/':
@@ -92,7 +94,7 @@ def application(environ, start_response):
 	elif uri == '/add/comment/add/':
 		output = add_comment(environ, start_response, cur, name)
 	elif re.match(r'/contacts/.*', uri):
-		with open('/home/user/myapp/templates/contacts.html', 'r') as f:
+		with codecs.open('/home/user/myapp/templates/contacts.html', 'r', encoding='utf-8') as f:
 			contacts_page = f.read()
 		output = base_page.render(myblock=contacts_page, name=name)
 	elif uri == '/showmore/comments/':
@@ -123,9 +125,10 @@ def auth(environ, start_response, cur):
 	request_body = environ['wsgi.input'].read(request_body_size)
 	d = parse_qs(request_body)
 	email = d.get('email', [''])[0]
-	password = d.get('password', [''])[0]
 	email = cgi.escape(email)
-	password = cgi.escape(password)
+	password = d.get('password', [''])[0]
+	password = cgi.escape(password) + key
+	password = md5.new(password).hexdigest()
 	#Psycopg block2 (PostgreSQL)
 	SQL_SELECT = "SELECT id FROM users WHERE login = %s AND password = %s;"
 	data_select = (str(email), str(password))
@@ -147,17 +150,17 @@ def auth(environ, start_response, cur):
 
 
 def reg(environ, start_response, cur):
+	global key
 	#Form Parsing Block
 	request_body_size = int(environ.get('CONTENT_LENGTH', 0))
 	request_body = environ['wsgi.input'].read(request_body_size)
 	d = parse_qs(request_body)
-	
 	reg_name = d.get('reg_name', [''])[0]
 	reg_email = d.get('reg_email', [''])[0]
 	reg_password = d.get('reg_password', [''])[0]
-	reg_name = escape(reg_name)	
 	reg_email = escape(reg_email)
-	reg_password = escape(reg_password)
+	reg_password = escape(reg_password) + key
+	reg_password = md5.new(reg_password).hexdigest()
 	#SQL block
 	if reg_name == "" or reg_email == "" or reg_password == "":
 		return json.dumps({'status': 'error', 'error': 'Please, fill all fields!'})
@@ -248,7 +251,7 @@ def article(environ, start_response, conn, uri, name):
 	if article_db == []:
 		return {'output': '404 Not Found', 'status': "404 Not Found"}
 	else:
-		with open('/home/user/myapp/templates/article.html', 'r') as f:
+		with codecs.open('/home/user/myapp/templates/article.html', 'r', encoding='utf-8') as f:
 			article_template = Template(f.read())
 		article_db = article_db[0]
 		article_author = article_db['article_author']	
@@ -293,10 +296,11 @@ def add_comment(environ, start_response, cur, name):
 		request_body_size = int(environ.get('CONTENT_LENGTH', 0))
 		request_body = environ['wsgi.input'].read(request_body_size)
 		d = parse_qs(request_body)
+		print(d)
 		article_idc = d['location'][0]
 		article_idc = article_idc[8:]
 		comment_author = name
-		comment_text = d['comment_text'][0]
+		comment_text = d['comment_text'][0].decode('utf-8')
 		comment_text = cgi.escape(comment_text)
 		comment_date = time.strftime("%Y-%m-%d %H:%M:%S")
 		SQL_INSERT = "INSERT INTO comments (article_idc, comment_author, comment_text, comment_date) VALUES (%s, %s, %s, %s);"
@@ -306,7 +310,6 @@ def add_comment(environ, start_response, cur, name):
 		comment_idandcount = cur.fetchall()
 		comments_count = comment_idandcount[0][0]
 		comment_id = comment_idandcount[0][1]
-		print(comment_idandcount)
 		js_response = json.dumps({'status': 'ok', 'comment_author': comment_author, 'comment_text': comment_text, 'comment_date': comment_date, 'comment_id': comment_id, 'comments_count': comments_count})
 		return js_response
 
@@ -353,14 +356,11 @@ def main_page(environ, start_response, conn, current_page=1):
 	if dict_response == []:
 		return "error"
 	else:
-		with open('/home/user/myapp/templates/main.html', 'r') as f:
+		with codecs.open('/home/user/myapp/templates/main.html', 'r', encoding='utf-8') as f:
 			main_template = Template(f.read())
 		for text in dict_response:
-			if len(text['article_text']) > 400:
-				text['article_text'] = text['article_text'][:400] + '...'
 			text['article_text'] = escape_article_text(text['article_text']) # def escape_article_text(text)
 		main_content = main_template.render(articles = dict_response, pages = pages, current_page=current_page)
-		print(main_content)
 		return main_content
 
 def delete_comment(environ, start_response, cur):
@@ -381,13 +381,15 @@ def add_image(environ, start_response, cur):
 	cur.execute("INSERT INTO images VALUES(DEFAULT);")
 	cur.execute("SELECT img_id FROM images ORDER BY img_id DESC LIMIT 1;")
 	image_id = cur.fetchone()
-
+	image_id = image_id[0]
 	fs = cgi.FieldStorage(fp=environ['wsgi.input'],environ=environ)
 	callback = fs['CKEditorFuncNum'].value
-	http_path = "/img/img%s.jpg"%image_id
 	image = fs['upload'].file
+	img_name = fs['upload'].filename
+	img_format = re.search(r'\.(?:jpg|jpeg|bmp|gif|png)$', img_name).group(0)
 	save_image = bytearray(image.read())
-	file = open("/home/user/myapp/static/img/img%s.jpg"%image_id, "wb")
+	http_path = "/img/img%s%s"%(image_id, img_format)
+	file = open("/home/user/myapp/static/img/img%s%s"%(image_id, img_format), "wb")
 	file.write(save_image)
 	file.close()
 	return "<script>window.parent.CKEDITOR.tools.callFunction(%s, '%s');</script>"%(callback, http_path)

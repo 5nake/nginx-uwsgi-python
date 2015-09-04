@@ -3,12 +3,14 @@
 {% endif %}
 
 {% for article in articles %}
-<h2><a href="/article/{{ article['article_id'] }}">{{ article['article_title'] }}</a></h2>
+<div class="main_articles">
+<h3><a class="article_title" href="/article/{{ article['article_id'] }}">{{ article['article_title'] }}</a></h3>
 Author: {{ article['article_author'] }}<br/>
-{{ article['article_date'] }}<br/>
-{{ article['article_text']|safe }}<br/>
-<a href="/article/{{ article['article_id'] }}">Read all
-...</a><br/></br><br/></hr>
+{{ article['article_date'] }}
+<div class='overflow_articles'>{{ article['article_text']|safe}}</div><br/>
+<a style="color:#4CAE4C;" href="/article/{{ article['article_id'] }}">Read all...</a><br/>
+</div>
+
 {% endfor %}
 
 {% for page in pages %}

@@ -15,6 +15,7 @@
 </form>
 {% endif %}
 
+{% if comments %}
 <div style="padding-top:20px;">
 <h4 id='comments_count'>Comments&nbsp;&mdash;&nbsp;{{ comments[0]['count'] }}</h4>
 <br/><br/>
@@ -39,6 +40,14 @@
 {% if comments|length > 4 %}
 <div id="show_more_comments" class="btn btn-success">Show More</div>
 {% endif %}
+{% else %}
+<div style="padding-top:20px;">
+<h4 id='comments_count'></h4>
+<br/><br/>
+<div id='content'>
+</div>
+</div>
+{% endif %}
 
 <script>
 $(document).ready(function(){
@@ -59,7 +68,7 @@ $(document).ready(function(){
 					alert(data.error);
 					window.location.href = ("/")
 				} else if (data.status === "ok") {
-					s = parse('<form id="comment_form"><p style="border-top:1px solid #5CB85C;"></p><p><strong>%s</strong>&nbsp;&mdash;&nbsp;%s</br>%s</br><span id="comment_id" hidden>%s</span><button type="submit" class="comment_del_button" onclick="delete_comment()">Delete</button></p>', data.comment_author, data.comment_date, data.comment_text, data.comment_id);
+					s = parse('<form id="comment_form"><p style="border-top:1px solid #5CB85C;"></p><p><strong>%s</strong>&nbsp;&mdash;&nbsp;%s</br>%s</br><span id="comment_id" hidden>%s</span><button type="submit" class="comment_del_button" onclick="delete_comment()">Delete</button></p>', data.comment_author, data.comment_date, encodeURI(data.comment_text), data.comment_id);
 					var div = document.createElement('div');
 					div.innerHTML = s;
 					newParent = document.getElementById('content');
