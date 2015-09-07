@@ -1,4 +1,0 @@
-from jinja2 import Template
-
-html = open('/home/user/myapp/index.html').read()
-template - Template(html)
