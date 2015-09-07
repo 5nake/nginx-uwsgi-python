@@ -1,4 +1,4 @@
-<form id="article_form" autocomplete="off">
+<form class='myblock' id="article_form" autocomplete="off">
 <div class="form-group">
     <textarea type="text" id = "article_title" name = "article_title" class="form-control status-box-title" rows="1" placeholder="Article Title" required></textarea>
 </div>
@@ -6,26 +6,37 @@
     <textarea type="text" id = "article_text" name = "article_text" class="article_title form-control status-box-text" rows="20" placeholder="Content" required></textarea>
 </div>
 
-<button type="submit" class="btn btn-success">Post</button>
+<div style='text-align:right'>
+<p class="counter">11999</p>&nbsp;&nbsp;<button type="submit" id="addarticle" class="btn btn-success">Post</button>
+</div>
 </form>
 
-<script type="text/javascript">
+<script type="text/javascript"> //CKEditor replace
 $(document).ready(function(){
 	CKEDITOR.replace( 'article_text' );
 });
 </script>
 
-<script type="text/javascript">
+
+<script> //Characters counter
 $(document).ready(function(){
-	window.onload = function()
-	{
-		CKEDITOR.replace( 'article_text' );
-	};
+	$('#addarticle').addClass('disabled');
+	CKEDITOR.instances.article_text.on('key', function(){
+		var currentLength = CKEDITOR.instances.article_text.getData().length; //length with html tags
+		charactersLeft = 11999 - currentLength
+		$('.counter').text(charactersLeft);
+    	if(charactersLeft < 0) {
+      		$('#addarticle').addClass('disabled');
+    	} else if (charactersLeft === 11999) {
+      		$('#addarticle').addClass('disabled');
+    	} else {
+      		$('#addarticle').removeClass('disabled');
+    	};
+});
 });
 </script>
 
-
-<script>
+<script> // Add article
 $(document).ready(function(){
 	$('form#article_form').on('submit', function() {
 		for (var i in CKEDITOR.instances) {

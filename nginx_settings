@@ -1,0 +1,15 @@
+Nginx Settings (on Ubuntu /etc/nginx/sites-available/myapp):
+
+server {
+    listen 80;
+    server_name localhost 127.0.0.1;
+
+    location / {
+	include		uwsgi_params;
+	uwsgi_pass	unix:/home/user/myapp/myapp.sock;
+    }
+    location ~ ^/(img/|css/|js/) {
+    root /home/user/myapp/static;
+    access_log off;
+    }
+}

@@ -6,13 +6,17 @@
 <div>Author: {{ article_author }}</div>
 
 {% if name %}
-<form id="second_form" autocomplete="off">
+<form accept-charset="utf-8" id="second_form" autocomplete="off">
 
 <div class="form-group" style="padding-top:18px;">
-    <textarea type="text" id = "comment_input" class="form-control status-box-text" rows="2" placeholder="What's on your mind?" autocomplete="off" required></textarea>
+    <textarea type="text" id = "comment_input" name="comment_input" class="form-control status-box-text" rows="2" placeholder="What's on your mind?" autocomplete="off" required></textarea>
 </div>
-<button type="submit" id="addcomment" class="btn btn-success">Post</button>
+<div style='text-align:right'>
+<p class="counter">800</p>&nbsp;&nbsp;<button type="submit" id="addcomment" class="btn btn-success">Post</button>
+</div>
 </form>
+{% else %}
+<h5 class="pls_log_in">For publish comments, please Log In</h5>
 {% endif %}
 
 {% if comments %}
@@ -49,7 +53,25 @@
 </div>
 {% endif %}
 
-<script>
+<script> //Characters counter
+$(document).ready(function(){
+	$('#addcomment').addClass('disabled');
+	$('#comment_input').keyup(function() {
+    	var postLength = $(this).val().length;
+    	var charactersLeft = 800 - postLength;
+		$('.counter').text(charactersLeft);
+    	if(charactersLeft < 0) {
+      		$('#addcomment').addClass('disabled');
+    	} else if (charactersLeft === 140) {
+      		$('#addcomment').addClass('disabled');
+    	} else {
+      		$('#addcomment').removeClass('disabled');
+    	};
+  	});
+});
+</script>
+
+<script> // Adding Comments
 $(document).ready(function(){
 	$('form#second_form').on('submit', function() {
 		var comment_text = $("#comment_input").val();
@@ -68,20 +90,22 @@ $(document).ready(function(){
 					alert(data.error);
 					window.location.href = ("/")
 				} else if (data.status === "ok") {
-					s = parse('<form id="comment_form"><p style="border-top:1px solid #5CB85C;"></p><p><strong>%s</strong>&nbsp;&mdash;&nbsp;%s</br>%s</br><span id="comment_id" hidden>%s</span><button type="submit" class="comment_del_button" onclick="delete_comment()">Delete</button></p>', data.comment_author, data.comment_date, unescape(encodeURI(data.comment_text)), data.comment_id);
+					s = parse('<form id="comment_form"><p style="border-top:1px solid #5CB85C;"></p><p><strong>%s</strong>&nbsp;&mdash;&nbsp;%s</br>%s</br><span id="comment_id" hidden>%s</span><button type="submit" class="comment_del_button" onclick="delete_comment()">Delete</button></p>', data.comment_author, data.comment_date, data.comment_text, data.comment_id);
 					var div = document.createElement('div');
 					div.innerHTML = s;
 					newParent = document.getElementById('content');
 					newParent.insertBefore(div, newParent.firstChild);
-					replace_elem = parse("<h4 id='comments_count'>Comments&nbsp;&mdash;&nbsp;%s</h4>", data.comments_count);
-					$(document.getElementById('comments_count')).replaceWith(replace_elem);
+					replace_elem1 = parse("<h4 id='comments_count'>Comments&nbsp;&mdash;&nbsp;%s</h4>", data.comments_count);
+					replace_elem2 = '<p class="counter">800</p>'
+					$(document.getElementById('comments_count')).replaceWith(replace_elem1);
+					$(document.getElementById('counter')).replaceWith(replace_elem2);
 				}}, "json");
 	return false;
 	});
 });
 </script>
 
-<script>
+<script> // Show More Comments
 $(document).ready(function(){
 	var counter = 0
 	var button = document.getElementById('show_more_comments')
@@ -122,7 +146,7 @@ $(document).ready(function(){
 });
 </script>
 
-<script>
+<script> // DEL Comments
 function delete_comment() {
 	$('form#comment_form').on('submit', function() {
 		var comment_id = this.getElementsByTagName("span")[0].innerHTML;
